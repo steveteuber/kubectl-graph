@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/steveteuber/kubectl-graph/pkg/kubectl-graph/cmd"
+	"github.com/steveteuber/kubectl-graph/pkg/cmd"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
