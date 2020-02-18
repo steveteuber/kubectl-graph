@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/steveteuber/kubectl-graph/pkg/graph"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -17,10 +18,10 @@ var (
 
 	graphExample = templates.Examples(`
 		# Visualize all pods in graphviz output format.
-		%[1]s graph pods | dot -T svg -o pods.svg
+		%[1]s graph deployments,replicasets,pods | dot -T svg -o pods.svg
 
 		# Visualize all pods in cypher output format.
-		%[1]s graph pods -o cypher | cypher-shell -u kubernetes -p secret --format plain
+		%[1]s graph deployments,replicasets,pods -o cypher | cypher-shell -u neo4j -p secret
 
 		# Visualize deployments in cypher output format, in the "v1" version of the "apps" API group:
 		%[1]s graph deployments.v1.apps -o cypher
@@ -136,10 +137,11 @@ func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		return err
 	}
 
+	graph := graph.NewGraph()
 	for ix := range infos {
 		obj := infos[ix].Object.(*unstructured.Unstructured)
-		fmt.Printf("%s %s %s/%s\n", obj.GetAPIVersion(), obj.GetKind(), obj.GetNamespace(), obj.GetName())
+		graph.AddNode(obj)
 	}
 
-	return nil
+	return graph.Write(o.Out, o.OutputFormat)
 }
