@@ -17,6 +17,7 @@ package graph
 import (
 	"bytes"
 	"io"
+	"strings"
 	"text/template"
 
 	v1 "k8s.io/api/core/v1"
@@ -26,27 +27,41 @@ import (
 )
 
 var (
-	dotTemplate = `digraph {}
-`
+	cypherTemplate = strings.Replace(
+		`// create nodes
+		:begin
+		{{- range .Nodes }}
+		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}";
+		{{- end }}
+		:commit
 
-	cypherTemplate = `// create nodes
-:begin
-{{- range $uid, $node := .Nodes }}
-MERGE (node:{{ $node.Kind }} {UID: "{{ $uid }}"}) ON CREATE SET node.Namespace = "{{ $node.Namespace }}", node.Name = "{{ $node.Name }}";
-{{- end }}
-:commit
+		// wait for index completion
+		call db.awaitIndexes();
 
-// wait for index completion
-call db.awaitIndexes();
+		// create relationships
+		:begin
+		{{- range .Relationships }}
+		MATCH (from:{{ .From.Kind }}),(to:{{ .To.Kind }}) WHERE from.UID = "{{ .From.UID }}" AND to.UID = "{{ .To.UID }}" MERGE (from)-[:{{ .Type }}]->(to);
+		{{- end }}
+		:commit
+		`, "\t\t", "", -1)
 
-// create relationships
-:begin
-{{- range $i, $relation := .Relationships }}
-MATCH (from:{{ $relation.From.Kind }}),(to:{{ $relation.To.Kind }}) WHERE from.UID = "{{ $relation.From.UID }}" AND to.UID = "{{ $relation.To.UID }}" MERGE (from)-[:{{ $relation.Type }}]->(to);
-{{- end }}
-:commit
-`
+	graphvizTemplate = strings.Replace(
+		`digraph {
+		// create nodes
+		{{- range .Nodes }}
+		    node [label="{{ .Kind }}\[{{ .Name }}\]"]; "{{ .UID }}";
+		{{- end }}
+		}
+		`, "\t\t", "", -1)
+
+	templates = template.New("OutputFormat")
 )
+
+func init() {
+	template.Must(templates.New("cypher").Parse(cypherTemplate))
+	template.Must(templates.New("graphviz").Parse(graphvizTemplate))
+}
 
 // Graph stores nodes and relationships between them.
 type Graph struct {
@@ -130,10 +145,10 @@ func (g Graph) String(format string) string {
 
 // Write formats according to the requested format and writes to w.
 func (g Graph) Write(w io.Writer, format string) error {
-	tpl, err := template.New(format).Parse(cypherTemplate)
+	err := templates.ExecuteTemplate(w, format, g)
 	if err != nil {
 		return err
 	}
 
-	return tpl.Execute(w, g)
+	return nil
 }
