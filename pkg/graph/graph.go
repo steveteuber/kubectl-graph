@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -48,14 +49,19 @@ var (
 
 	graphvizTemplate = strings.Replace(
 		`digraph {
-		// create nodes
-		{{- range .Nodes }}
-		    node [label="{{ .Kind }}\[{{ .Name }}\]"]; "{{ .UID }}";
-		{{- end }}
+		    // create nodes
+		    {{- range .Nodes }}
+		    "{{ .UID }}" [label="{{ .Name }}"];
+		    {{- end }}
+
+		    // create relationships
+		    {{- range .Relationships }}
+		    "{{ .From.UID }}" -> "{{ .To.UID }}" [label="&nbsp;{{ .Type }}"];
+		    {{- end }}
 		}
 		`, "\t\t", "", -1)
 
-	templates = template.New("OutputFormat")
+	templates = template.New("output")
 )
 
 func init() {
@@ -67,6 +73,8 @@ func init() {
 type Graph struct {
 	Nodes         map[types.UID]v1.ObjectReference
 	Relationships []Relationship
+
+	*kubernetes.Clientset
 }
 
 // Relationship represents a relationship between nodes in the graph.
@@ -77,9 +85,10 @@ type Relationship struct {
 }
 
 // NewGraph returns a new initialized a Graph.
-func NewGraph() *Graph {
+func NewGraph(clientset *kubernetes.Clientset) *Graph {
 	return &Graph{
-		Nodes: make(map[types.UID]v1.ObjectReference),
+		Clientset: clientset,
+		Nodes:     make(map[types.UID]v1.ObjectReference),
 	}
 }
 

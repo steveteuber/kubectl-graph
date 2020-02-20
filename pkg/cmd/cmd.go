@@ -147,7 +147,12 @@ func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		return err
 	}
 
-	graph := graph.NewGraph()
+	clientset, err := f.KubernetesClientSet()
+	if err != nil {
+		return err
+	}
+
+	graph := graph.NewGraph(clientset)
 	for ix := range infos {
 		obj := infos[ix].Object.(*unstructured.Unstructured)
 		graph.AddNode(obj)
