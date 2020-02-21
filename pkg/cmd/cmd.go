@@ -10,6 +10,9 @@ import (
 	"k8s.io/cli-runtime/pkg/resource"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	// Import to initialize client auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 var (
