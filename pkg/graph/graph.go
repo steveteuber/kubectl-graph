@@ -71,11 +71,14 @@ func init() {
 
 // Graph stores nodes and relationships between them.
 type Graph struct {
-	Nodes         map[types.UID]v1.ObjectReference
+	Nodes         map[types.UID]Node
 	Relationships []Relationship
 
 	*kubernetes.Clientset
 }
+
+// Node represents a node in the graph.
+type Node v1.ObjectReference
 
 // Relationship represents a relationship between nodes in the graph.
 type Relationship struct {
@@ -85,15 +88,21 @@ type Relationship struct {
 }
 
 // NewGraph returns a new initialized a Graph.
-func NewGraph(clientset *kubernetes.Clientset) *Graph {
-	return &Graph{
+func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
+	g := &Graph{
 		Clientset: clientset,
-		Nodes:     make(map[types.UID]v1.ObjectReference),
+		Nodes:     make(map[types.UID]Node),
 	}
+
+	for _, obj := range objs {
+		g.Node(obj)
+	}
+
+	return g, nil
 }
 
-// AddNode adds a node to the Graph and detects the relationships.
-func (g *Graph) AddNode(obj *unstructured.Unstructured) error {
+// Node adds a node to the Graph and detects the relationships.
+func (g *Graph) Node(obj *unstructured.Unstructured) error {
 	if len(obj.GetOwnerReferences()) == 0 {
 		references := make([]metav1.OwnerReference, 1)
 		references[0] = metav1.OwnerReference{
@@ -106,7 +115,7 @@ func (g *Graph) AddNode(obj *unstructured.Unstructured) error {
 		obj.SetOwnerReferences(references)
 	}
 
-	g.Nodes[obj.GetUID()] = v1.ObjectReference{
+	g.Nodes[obj.GetUID()] = Node{
 		APIVersion: obj.GetAPIVersion(),
 		Kind:       obj.GetKind(),
 		Name:       obj.GetName(),
@@ -117,7 +126,7 @@ func (g *Graph) AddNode(obj *unstructured.Unstructured) error {
 	for _, owner := range obj.GetOwnerReferences() {
 		// Check if OwnerReference exists as a Node in the Graph
 		if _, exists := g.Nodes[owner.UID]; !exists {
-			g.Nodes[owner.UID] = v1.ObjectReference{
+			g.Nodes[owner.UID] = Node{
 				APIVersion: owner.APIVersion,
 				Kind:       owner.Kind,
 				Name:       owner.Name,

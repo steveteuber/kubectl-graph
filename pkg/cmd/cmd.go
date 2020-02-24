@@ -145,20 +145,24 @@ func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		return err
 	}
 
-	infos, err := r.Infos()
-	if err != nil {
-		return err
-	}
-
 	clientset, err := f.KubernetesClientSet()
 	if err != nil {
 		return err
 	}
 
-	graph := graph.NewGraph(clientset)
+	infos, err := r.Infos()
+	if err != nil {
+		return err
+	}
+
+	objs := make([]*unstructured.Unstructured, len(infos))
 	for ix := range infos {
-		obj := infos[ix].Object.(*unstructured.Unstructured)
-		graph.AddNode(obj)
+		objs[ix] = infos[ix].Object.(*unstructured.Unstructured)
+	}
+
+	graph, err := graph.NewGraph(clientset, objs)
+	if err != nil {
+		return err
 	}
 
 	return graph.Write(o.Out, o.OutputFormat)
