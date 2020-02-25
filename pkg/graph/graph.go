@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -94,11 +95,16 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 		Nodes:     make(map[types.UID]Node),
 	}
 
+	errs := []error{}
+
 	for _, obj := range objs {
-		g.Node(obj)
+		err := g.Node(obj)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 
-	return g, nil
+	return g, errors.NewAggregate(errs)
 }
 
 // Node adds a node to the Graph and detects the relationships.
