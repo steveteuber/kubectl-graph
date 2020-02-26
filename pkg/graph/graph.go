@@ -50,6 +50,8 @@ var (
 
 	graphvizTemplate = strings.Replace(
 		`digraph {
+		    bgcolor="#F6F6F6";
+
 		    // create nodes
 		    {{- range .Nodes }}
 		    "{{ .UID }}" [label="{{ .Name }}"];
