@@ -105,7 +105,7 @@ func (o *GraphOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []st
 	}
 
 	switch o.OutputFormat {
-	case "cql":
+	case "cql", "cyp":
 		o.OutputFormat = "cypher"
 	case "dot", "":
 		o.OutputFormat = "graphviz"
@@ -120,7 +120,7 @@ func (o *GraphOptions) Validate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("You must specify the type of resource to graph. %s", cmdutil.SuggestAPIResources(o.CmdParent))
 	}
 	if !(o.OutputFormat == "cypher" || o.OutputFormat == "graphviz") {
-		return fmt.Errorf("Invalid output format: %q, allowed formats are: %s", o.OutputFormat, "cql|cypher|dot|graphviz")
+		return fmt.Errorf("Invalid output format: %q, allowed formats are: %s", o.OutputFormat, "cql|cyp|cypher|dot|graphviz")
 	}
 
 	return nil
