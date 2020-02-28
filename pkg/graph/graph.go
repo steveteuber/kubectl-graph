@@ -77,7 +77,7 @@ type Graph struct {
 	Nodes         map[types.UID]Node
 	Relationships []Relationship
 
-	*kubernetes.Clientset
+	clientset *kubernetes.Clientset
 }
 
 // Node represents a node in the graph.
@@ -93,7 +93,7 @@ type Relationship struct {
 // NewGraph returns a new initialized a Graph.
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
 	g := &Graph{
-		Clientset: clientset,
+		clientset: clientset,
 		Nodes:     make(map[types.UID]Node),
 	}
 
