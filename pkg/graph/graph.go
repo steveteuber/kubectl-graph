@@ -23,6 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
@@ -100,7 +101,8 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 	errs := []error{}
 
 	for _, obj := range objs {
-		err := g.Node(obj)
+		gvk := schema.FromAPIVersionAndKind(obj.GetAPIVersion(), obj.GetKind())
+		err := g.Node(gvk, obj)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -110,7 +112,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 }
 
 // Node adds a node to the Graph and detects the relationships.
-func (g *Graph) Node(obj *unstructured.Unstructured) error {
+func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) error {
 	if len(obj.GetOwnerReferences()) == 0 {
 		references := make([]metav1.OwnerReference, 1)
 		references[0] = metav1.OwnerReference{
@@ -123,9 +125,10 @@ func (g *Graph) Node(obj *unstructured.Unstructured) error {
 		obj.SetOwnerReferences(references)
 	}
 
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
 	g.Nodes[obj.GetUID()] = Node{
-		APIVersion: obj.GetAPIVersion(),
-		Kind:       obj.GetKind(),
+		APIVersion: apiVersion,
+		Kind:       kind,
 		Name:       obj.GetName(),
 		Namespace:  obj.GetNamespace(),
 		UID:        obj.GetUID(),
@@ -148,9 +151,9 @@ func (g *Graph) Node(obj *unstructured.Unstructured) error {
 				Kind: owner.Kind,
 				UID:  owner.UID,
 			},
-			Type: obj.GetKind(),
+			Type: kind,
 			To: v1.ObjectReference{
-				Kind: obj.GetKind(),
+				Kind: kind,
 				UID:  obj.GetUID(),
 			},
 		}
