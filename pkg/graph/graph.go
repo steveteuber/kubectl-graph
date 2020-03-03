@@ -101,8 +101,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 	errs := []error{}
 
 	for _, obj := range objs {
-		gvk := schema.FromAPIVersionAndKind(obj.GetAPIVersion(), obj.GetKind())
-		err := g.Node(gvk, obj)
+		err := g.Unstructured(obj)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -111,57 +110,69 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 	return g, errors.NewAggregate(errs)
 }
 
-// Node adds a node to the Graph and detects the relationships.
-func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) error {
-	if len(obj.GetOwnerReferences()) == 0 {
-		references := make([]metav1.OwnerReference, 1)
-		references[0] = metav1.OwnerReference{
-			APIVersion: "v1",
-			Kind:       "Namespace",
-			Name:       obj.GetNamespace(),
-			UID:        types.UID(obj.GetNamespace()), // TODO: use real Namespace.UID
-		}
+// Unstructured adds an unstructured node to the Graph.
+func (g *Graph) Unstructured(unstr *unstructured.Unstructured) error {
+	gvk := schema.FromAPIVersionAndKind(unstr.GetAPIVersion(), unstr.GetKind())
+	g.Node(gvk, unstr)
 
-		obj.SetOwnerReferences(references)
+	return nil
+}
+
+// Node adds a node and the owner references to the Graph.
+func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) Node {
+	if node, ok := g.Nodes[obj.GetUID()]; ok {
+		return node
 	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
-	g.Nodes[obj.GetUID()] = Node{
+	node := Node{
 		APIVersion: apiVersion,
 		Kind:       kind,
 		Name:       obj.GetName(),
 		Namespace:  obj.GetNamespace(),
 		UID:        obj.GetUID(),
 	}
+	g.Nodes[obj.GetUID()] = node
 
-	for _, owner := range obj.GetOwnerReferences() {
-		// Check if OwnerReference exists as a Node in the Graph
-		if _, exists := g.Nodes[owner.UID]; !exists {
-			g.Nodes[owner.UID] = Node{
-				APIVersion: owner.APIVersion,
-				Kind:       owner.Kind,
-				Name:       owner.Name,
-				Namespace:  obj.GetNamespace(),
-				UID:        owner.UID,
-			}
-		}
-
-		relationship := Relationship{
-			From: v1.ObjectReference{
-				Kind: owner.Kind,
-				UID:  owner.UID,
+	if len(obj.GetOwnerReferences()) == 0 {
+		ns := g.Node(
+			schema.FromAPIVersionAndKind("v1", "Namespace"),
+			&metav1.ObjectMeta{
+				UID:       types.UID(obj.GetNamespace()), // TODO: use real Namespace.UID
+				Name:      obj.GetNamespace(),
+				Namespace: obj.GetNamespace(),
 			},
-			Type: kind,
-			To: v1.ObjectReference{
-				Kind: kind,
-				UID:  obj.GetUID(),
-			},
+		)
+		if node != ns {
+			g.Relationship(ns, kind, node)
 		}
-
-		g.Relationships = append(g.Relationships, relationship)
 	}
 
-	return nil
+	for _, ownerRef := range obj.GetOwnerReferences() {
+		owner := g.Node(
+			schema.FromAPIVersionAndKind(ownerRef.APIVersion, ownerRef.Kind),
+			&metav1.ObjectMeta{
+				UID:       ownerRef.UID,
+				Name:      ownerRef.Name,
+				Namespace: obj.GetNamespace(),
+			},
+		)
+		g.Relationship(owner, kind, node)
+	}
+
+	return node
+}
+
+// Relationship creates a new relationship between two nodes.
+func (g *Graph) Relationship(from Node, label string, to Node) Relationship {
+	relationship := Relationship{
+		From: v1.ObjectReference{UID: from.UID, Kind: from.Kind},
+		Type: label,
+		To:   v1.ObjectReference{UID: to.UID, Kind: to.Kind},
+	}
+	g.Relationships = append(g.Relationships, relationship)
+
+	return relationship
 }
 
 // String returns the graph in requested format.
