@@ -75,8 +75,8 @@ func init() {
 
 // Graph stores nodes and relationships between them.
 type Graph struct {
-	Nodes         map[types.UID]Node
-	Relationships []Relationship
+	Nodes         map[types.UID]*Node
+	Relationships []*Relationship
 
 	clientset *kubernetes.Clientset
 }
@@ -95,7 +95,7 @@ type Relationship struct {
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
 	g := &Graph{
 		clientset: clientset,
-		Nodes:     make(map[types.UID]Node),
+		Nodes:     make(map[types.UID]*Node),
 	}
 
 	errs := []error{}
@@ -119,13 +119,13 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) error {
 }
 
 // Node adds a node and the owner references to the Graph.
-func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) Node {
+func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 	if node, ok := g.Nodes[obj.GetUID()]; ok {
 		return node
 	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
-	node := Node{
+	node := &Node{
 		APIVersion: apiVersion,
 		Kind:       kind,
 		Name:       obj.GetName(),
@@ -164,8 +164,8 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) Node {
 }
 
 // Relationship creates a new relationship between two nodes.
-func (g *Graph) Relationship(from Node, label string, to Node) Relationship {
-	relationship := Relationship{
+func (g *Graph) Relationship(from *Node, label string, to *Node) *Relationship {
+	relationship := &Relationship{
 		From: v1.ObjectReference{UID: from.UID, Kind: from.Kind},
 		Type: label,
 		To:   v1.ObjectReference{UID: to.UID, Kind: to.Kind},
