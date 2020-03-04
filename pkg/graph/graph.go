@@ -112,7 +112,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 
 // Unstructured adds an unstructured node to the Graph.
 func (g *Graph) Unstructured(unstr *unstructured.Unstructured) error {
-	gvk := schema.FromAPIVersionAndKind(unstr.GetAPIVersion(), unstr.GetKind())
+	gvk := unstr.GroupVersionKind()
 	g.Node(gvk, unstr)
 
 	return nil
