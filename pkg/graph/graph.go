@@ -43,9 +43,9 @@ var (
 
 		// create relationships
 		:begin
-		{{- range .Relationships }}
+		{{- range .Relationships }}{{ range . }}
 		MATCH (from:{{ .From.Kind }}),(to:{{ .To.Kind }}) WHERE from.UID = "{{ .From.UID }}" AND to.UID = "{{ .To.UID }}" MERGE (from)-[:{{ .Type }}]->(to);
-		{{- end }}
+		{{- end }}{{ end }}
 		:commit
 		`, "\t\t", "", -1)
 
@@ -59,9 +59,9 @@ var (
 		    {{- end }}
 
 		    // create relationships
-		    {{- range .Relationships }}
+		    {{- range .Relationships }}{{ range . }}
 		    "{{ .From.UID }}" -> "{{ .To.UID }}" [label="&nbsp;{{ .Type }}"];
-		    {{- end }}
+		    {{- end }}{{ end }}
 		}
 		`, "\t\t", "", -1)
 
@@ -76,7 +76,7 @@ func init() {
 // Graph stores nodes and relationships between them.
 type Graph struct {
 	Nodes         map[types.UID]*Node
-	Relationships []*Relationship
+	Relationships map[types.UID][]*Relationship
 
 	clientset *kubernetes.Clientset
 }
@@ -94,8 +94,9 @@ type Relationship struct {
 // NewGraph returns a new initialized a Graph.
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
 	g := &Graph{
-		clientset: clientset,
-		Nodes:     make(map[types.UID]*Node),
+		clientset:     clientset,
+		Nodes:         make(map[types.UID]*Node),
+		Relationships: make(map[types.UID][]*Relationship),
 	}
 
 	errs := []error{}
@@ -165,12 +166,20 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 
 // Relationship creates a new relationship between two nodes.
 func (g *Graph) Relationship(from *Node, label string, to *Node) *Relationship {
+	if rs, ok := g.Relationships[from.UID]; ok {
+		for _, r := range rs {
+			if r.To.UID == to.UID {
+				return r
+			}
+		}
+	}
+
 	relationship := &Relationship{
 		From: v1.ObjectReference{UID: from.UID, Kind: from.Kind},
 		Type: label,
 		To:   v1.ObjectReference{UID: to.UID, Kind: to.Kind},
 	}
-	g.Relationships = append(g.Relationships, relationship)
+	g.Relationships[from.UID] = append(g.Relationships[from.UID], relationship)
 
 	return relationship
 }
