@@ -33,8 +33,13 @@ var (
 	cypherTemplate = strings.Replace(
 		`// create nodes
 		:begin
-		{{- range .Nodes }}
+		{{- range $namespace, $node := .Nodes }}
+			{{- if $namespace }}
+		MERGE (node:Namespace {UID: "namespace_{{ $namespace }}"}) ON CREATE SET node.Name = "{{ $namespace }}";
+			{{- end }}
+			{{- range . }}
 		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}";
+			{{- end }}
 		{{- end }}
 		:commit
 
@@ -46,6 +51,11 @@ var (
 		{{- range .Relationships }}{{ range . }}
 		MATCH (from:{{ .From.Kind }}),(to:{{ .To.Kind }}) WHERE from.UID = "{{ .From.UID }}" AND to.UID = "{{ .To.UID }}" MERGE (from)-[:{{ .Type }}]->(to);
 		{{- end }}{{ end }}
+		{{- range $namespace, $node := .Nodes }}
+			{{- if $namespace }}
+		MATCH (ns:Namespace) WHERE ns.Name = "{{ $namespace }}" MATCH (node) WHERE node.Namespace = ns.Name AND NOT(()-[]->(node)) MERGE (node)-[:Namespace]->(ns);
+			{{- end }}
+		{{- end }}
 		:commit
 		`, "\t\t", "", -1)
 
@@ -53,15 +63,29 @@ var (
 		`digraph {
 		    bgcolor="#F6F6F6";
 
+		{{- range $namespace, $node := .Nodes }}
+		  {{ if $namespace }}
+		    // create subgraph
+		    subgraph "cluster_{{ $namespace }}" {
+		      label="{{ $namespace }}";
+		      {{- range . }}
+		      "{{ .UID }}" [label="{{ .Name }}"];
+		      {{- end }}
+		    }
+		  {{- else }}
 		    // create nodes
-		    {{- range .Nodes }}
+		    {{- range . }}
 		    "{{ .UID }}" [label="{{ .Name }}"];
 		    {{- end }}
+		  {{- end }}
+		{{- end }}
 
 		    // create relationships
-		    {{- range .Relationships }}{{ range . }}
+		{{- range .Relationships }}
+		  {{- range . }}
 		    "{{ .From.UID }}" -> "{{ .To.UID }}" [label="&nbsp;{{ .Type }}"];
-		    {{- end }}{{ end }}
+		  {{- end }}
+		{{- end }}
 		}
 		`, "\t\t", "", -1)
 
@@ -75,7 +99,7 @@ func init() {
 
 // Graph stores nodes and relationships between them.
 type Graph struct {
-	Nodes         map[types.UID]*Node
+	Nodes         map[string]map[types.UID]*Node
 	Relationships map[types.UID][]*Relationship
 
 	clientset *kubernetes.Clientset
@@ -95,7 +119,7 @@ type Relationship struct {
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
 	g := &Graph{
 		clientset:     clientset,
-		Nodes:         make(map[types.UID]*Node),
+		Nodes:         make(map[string]map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
 	}
 
@@ -121,8 +145,8 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) error {
 
 // Node adds a node and the owner references to the Graph.
 func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
-	if node, ok := g.Nodes[obj.GetUID()]; ok {
-		return node
+	if g.Nodes[obj.GetNamespace()] == nil {
+		g.Nodes[obj.GetNamespace()] = make(map[types.UID]*Node)
 	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
@@ -133,21 +157,7 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 		Namespace:  obj.GetNamespace(),
 		UID:        obj.GetUID(),
 	}
-	g.Nodes[obj.GetUID()] = node
-
-	if len(obj.GetOwnerReferences()) == 0 {
-		ns := g.Node(
-			schema.FromAPIVersionAndKind("v1", "Namespace"),
-			&metav1.ObjectMeta{
-				UID:       types.UID(obj.GetNamespace()), // TODO: use real Namespace.UID
-				Name:      obj.GetNamespace(),
-				Namespace: obj.GetNamespace(),
-			},
-		)
-		if node != ns {
-			g.Relationship(ns, kind, node)
-		}
-	}
+	g.Nodes[obj.GetNamespace()][obj.GetUID()] = node
 
 	for _, ownerRef := range obj.GetOwnerReferences() {
 		owner := g.Node(
