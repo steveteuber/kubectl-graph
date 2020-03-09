@@ -61,7 +61,8 @@ var (
 
 	graphvizTemplate = strings.Replace(
 		`digraph {
-		    bgcolor="#F6F6F6";
+		    graph [rankdir="LR"; bgcolor="#F6F6F6"];
+		    node [shape="record"];
 
 		{{- range $namespace, $node := .Nodes }}
 		  {{ if $namespace }}
@@ -69,13 +70,13 @@ var (
 		    subgraph "cluster_{{ $namespace }}" {
 		      label="{{ $namespace }}";
 		      {{- range . }}
-		      "{{ .UID }}" [label="{{ .Name }}"];
+		      "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
 		      {{- end }}
 		    }
 		  {{- else }}
 		    // create nodes
 		    {{- range . }}
-		    "{{ .UID }}" [label="{{ .Name }}"];
+		    "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
 		    {{- end }}
 		  {{- end }}
 		{{- end }}
@@ -83,7 +84,7 @@ var (
 		    // create relationships
 		{{- range .Relationships }}
 		  {{- range . }}
-		    "{{ .From.UID }}" -> "{{ .To.UID }}" [label="&nbsp;{{ .Type }}"];
+		    "{{ .From.UID }}" -> "{{ .To.UID }}";
 		  {{- end }}
 		{{- end }}
 		}
