@@ -61,8 +61,9 @@ var (
 
 	graphvizTemplate = strings.Replace(
 		`digraph {
-		    graph [rankdir="LR"; bgcolor="#F6F6F6"];
-		    node [shape="record"];
+		    graph [rankdir="LR" bgcolor="#F6F6F6"];
+		    node [shape="record" color="lightgray"];
+		    edge [color="#4284F3"];
 
 		{{- range $namespace, $node := .Nodes }}
 		  {{ if $namespace }}
