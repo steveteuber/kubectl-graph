@@ -16,6 +16,7 @@ package graph
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"text/template"
@@ -23,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -139,8 +141,19 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 
 // Unstructured adds an unstructured node to the Graph.
 func (g *Graph) Unstructured(unstr *unstructured.Unstructured) error {
-	gvk := unstr.GroupVersionKind()
-	g.Node(gvk, unstr)
+	g.Node(unstr.GroupVersionKind(), unstr)
+
+	switch unstr.GetKind() {
+	case "Pod":
+		obj := &v1.Pod{}
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstr.UnstructuredContent(), obj)
+		if err != nil {
+			return fmt.Errorf("Failed to convert %T to %T: %v", unstr, obj, err)
+		}
+		if _, err := g.Pod(obj); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -212,4 +225,33 @@ func (g Graph) Write(w io.Writer, format string) error {
 	}
 
 	return nil
+}
+
+// Pod adds a v1.Pod resource to the Graph.
+func (g *Graph) Pod(pod *v1.Pod) (*Node, error) {
+	n := g.Node(pod.GroupVersionKind(), pod)
+
+	for _, container := range pod.Spec.Containers {
+		c, err := g.Container(pod, container)
+		if err != nil {
+			return nil, err
+		}
+		g.Relationship(n, "Container", c)
+	}
+
+	return n, nil
+}
+
+// Container adds a v1.Container resource to the Graph.
+func (g *Graph) Container(pod *v1.Pod, container v1.Container) (*Node, error) {
+	n := g.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "Container"),
+		&metav1.ObjectMeta{
+			UID:       types.UID(fmt.Sprintf("%s-%s", pod.GetUID(), container.Name)),
+			Namespace: pod.GetNamespace(),
+			Name:      container.Name,
+		},
+	)
+
+	return n, nil
 }
