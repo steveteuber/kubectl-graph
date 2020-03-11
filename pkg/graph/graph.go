@@ -252,6 +252,24 @@ func (g *Graph) Container(pod *v1.Pod, container v1.Container) (*Node, error) {
 			Name:      container.Name,
 		},
 	)
+	i, err := g.ContainerImage(v1.ContainerImage{Names: []string{container.Image}})
+	if err != nil {
+		return nil, err
+	}
+	g.Relationship(n, "ContainerImage", i)
+
+	return n, nil
+}
+
+// ContainerImage adds a v1.ContainerImage resource to the Graph.
+func (g *Graph) ContainerImage(image v1.ContainerImage) (*Node, error) {
+	n := g.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "ContainerImage"),
+		&metav1.ObjectMeta{
+			UID:  types.UID(strings.Join(image.Names, "-")),
+			Name: strings.Join(image.Names, ","),
+		},
+	)
 
 	return n, nil
 }
