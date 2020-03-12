@@ -16,6 +16,7 @@ package graph
 
 import (
 	"bytes"
+	"crypto/md5"
 	"fmt"
 	"io"
 	"strings"
@@ -117,6 +118,22 @@ type Relationship struct {
 	From v1.ObjectReference
 	Type string
 	To   v1.ObjectReference
+}
+
+// ToUID converts strings to MD5 and returns this as types.UID.
+func ToUID(input ...string) types.UID {
+	bytes := []byte(strings.Join(input, "-"))
+	md5sum := fmt.Sprintf("%x", md5.Sum(bytes))
+
+	slice := []string{
+		md5sum[:8],
+		md5sum[8:12],
+		md5sum[12:16],
+		md5sum[16:20],
+		md5sum[20:],
+	}
+
+	return types.UID(strings.Join(slice, "-"))
 }
 
 // NewGraph returns a new initialized a Graph.
@@ -247,7 +264,7 @@ func (g *Graph) Container(pod *v1.Pod, container v1.Container) (*Node, error) {
 	n := g.Node(
 		schema.FromAPIVersionAndKind(v1.GroupName, "Container"),
 		&metav1.ObjectMeta{
-			UID:       types.UID(fmt.Sprintf("%s-%s", pod.GetUID(), container.Name)),
+			UID:       ToUID(string(pod.GetUID()), container.Name),
 			Namespace: pod.GetNamespace(),
 			Name:      container.Name,
 		},
@@ -266,7 +283,7 @@ func (g *Graph) ContainerImage(image v1.ContainerImage) (*Node, error) {
 	n := g.Node(
 		schema.FromAPIVersionAndKind(v1.GroupName, "ContainerImage"),
 		&metav1.ObjectMeta{
-			UID:  types.UID(strings.Join(image.Names, "-")),
+			UID:  ToUID(strings.Join(image.Names, "-")),
 			Name: strings.Join(image.Names, ","),
 		},
 	)
