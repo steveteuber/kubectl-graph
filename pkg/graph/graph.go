@@ -136,6 +136,16 @@ func ToUID(input ...string) types.UID {
 	return types.UID(strings.Join(slice, "-"))
 }
 
+// FromUnstructured converts an unstructured object into a concrete type.
+func FromUnstructured(unstr *unstructured.Unstructured, obj interface{}) error {
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstr.UnstructuredContent(), obj)
+	if err != nil {
+		return fmt.Errorf("Failed to convert %T to %T: %v", unstr, obj, err)
+	}
+
+	return nil
+}
+
 // NewGraph returns a new initialized a Graph.
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
 	g := &Graph{
@@ -157,22 +167,19 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 }
 
 // Unstructured adds an unstructured node to the Graph.
-func (g *Graph) Unstructured(unstr *unstructured.Unstructured) error {
+func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 	g.Node(unstr.GroupVersionKind(), unstr)
 
 	switch unstr.GetKind() {
 	case "Pod":
 		obj := &v1.Pod{}
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstr.UnstructuredContent(), obj)
-		if err != nil {
-			return fmt.Errorf("Failed to convert %T to %T: %v", unstr, obj, err)
-		}
-		if _, err := g.Pod(obj); err != nil {
+		if err = FromUnstructured(unstr, obj); err != nil {
 			return err
 		}
+		_, err = g.Pod(obj)
 	}
 
-	return nil
+	return err
 }
 
 // Node adds a node and the owner references to the Graph.
