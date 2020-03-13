@@ -177,6 +177,12 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 			return err
 		}
 		_, err = g.Pod(obj)
+	case "Endpoints":
+		obj := &v1.Endpoints{}
+		if err = FromUnstructured(unstr, obj); err != nil {
+			return err
+		}
+		_, err = g.Endpoints(obj)
 	}
 
 	return err
@@ -294,6 +300,27 @@ func (g *Graph) ContainerImage(image v1.ContainerImage) (*Node, error) {
 			Name: strings.Join(image.Names, ","),
 		},
 	)
+
+	return n, nil
+}
+
+// Endpoints adds a v1.Endpoints resource to the Graph.
+func (g *Graph) Endpoints(obj *v1.Endpoints) (*Node, error) {
+	n := g.Node(obj.GroupVersionKind(), obj)
+
+	for _, subset := range obj.Subsets {
+		for _, address := range subset.Addresses {
+			t := g.Node(
+				address.TargetRef.GroupVersionKind(),
+				&metav1.ObjectMeta{
+					UID:       address.TargetRef.UID,
+					Name:      address.TargetRef.Name,
+					Namespace: address.TargetRef.Namespace,
+				},
+			)
+			g.Relationship(n, address.TargetRef.Kind, t)
+		}
+	}
 
 	return n, nil
 }
