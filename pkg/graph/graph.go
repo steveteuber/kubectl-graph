@@ -183,6 +183,12 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 			return err
 		}
 		_, err = g.Endpoints(obj)
+	case "Service":
+		obj := &v1.Service{}
+		if err = FromUnstructured(unstr, obj); err != nil {
+			return err
+		}
+		_, err = g.Service(obj)
 	}
 
 	return err
@@ -306,7 +312,7 @@ func (g *Graph) ContainerImage(image v1.ContainerImage) (*Node, error) {
 
 // Endpoints adds a v1.Endpoints resource to the Graph.
 func (g *Graph) Endpoints(obj *v1.Endpoints) (*Node, error) {
-	n := g.Node(obj.GroupVersionKind(), obj)
+	n := g.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Endpoints"), obj)
 
 	for _, subset := range obj.Subsets {
 		for _, address := range subset.Addresses {
@@ -321,6 +327,38 @@ func (g *Graph) Endpoints(obj *v1.Endpoints) (*Node, error) {
 			g.Relationship(n, address.TargetRef.Kind, t)
 		}
 	}
+
+	return n, nil
+}
+
+// Service adds a v1.Service resource to the Graph.
+func (g *Graph) Service(obj *v1.Service) (*Node, error) {
+	switch obj.Spec.Type {
+	case v1.ServiceTypeClusterIP:
+		return g.ServiceTypeClusterIP(obj)
+		// case v1.ServiceTypeNodePort:
+		// case v1.ServiceTypeLoadBalancer:
+		// case v1.ServiceTypeExternalName:
+	}
+
+	return nil, nil
+}
+
+// ServiceTypeClusterIP adds a v1.Service of type ClusterIP to the Graph.
+func (g *Graph) ServiceTypeClusterIP(obj *v1.Service) (*Node, error) {
+	n := g.Node(obj.GroupVersionKind(), obj)
+
+	options := metav1.GetOptions{}
+	endpoints, err := g.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(obj.GetName(), options)
+	if err != nil {
+		return nil, err
+	}
+
+	e, err := g.Endpoints(endpoints)
+	if err != nil {
+		return nil, err
+	}
+	g.Relationship(n, "Endpoints", e)
 
 	return n, nil
 }
