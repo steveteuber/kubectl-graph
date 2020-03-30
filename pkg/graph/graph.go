@@ -338,7 +338,8 @@ func (g *Graph) Service(obj *v1.Service) (*Node, error) {
 		return g.ServiceTypeClusterIP(obj)
 		// case v1.ServiceTypeNodePort:
 		// case v1.ServiceTypeLoadBalancer:
-		// case v1.ServiceTypeExternalName:
+	case v1.ServiceTypeExternalName:
+		return g.ServiceTypeExternalName(obj)
 	}
 
 	return nil, nil
@@ -359,6 +360,22 @@ func (g *Graph) ServiceTypeClusterIP(obj *v1.Service) (*Node, error) {
 		return nil, err
 	}
 	g.Relationship(n, "Endpoints", e)
+
+	return n, nil
+}
+
+// ServiceTypeExternalName adds a v1.Service of type ExternalName to the Graph.
+func (g *Graph) ServiceTypeExternalName(obj *v1.Service) (*Node, error) {
+	n := g.Node(obj.GroupVersionKind(), obj)
+
+	e := g.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "ExternalName"),
+		&metav1.ObjectMeta{
+			UID:  ToUID(obj.Spec.ExternalName),
+			Name: obj.Spec.ExternalName,
+		},
+	)
+	g.Relationship(n, "ExternalName", e)
 
 	return n, nil
 }
