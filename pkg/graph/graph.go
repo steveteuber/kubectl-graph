@@ -273,7 +273,7 @@ func (g Graph) Write(w io.Writer, format string) error {
 
 // Pod adds a v1.Pod resource to the Graph.
 func (g *Graph) Pod(pod *v1.Pod) (*Node, error) {
-	n := g.Node(pod.GroupVersionKind(), pod)
+	n := g.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Pod"), pod)
 
 	for _, container := range pod.Spec.Containers {
 		c, err := g.Container(pod, container)
