@@ -108,6 +108,8 @@ type Graph struct {
 	Relationships map[types.UID][]*Relationship
 
 	clientset *kubernetes.Clientset
+
+	networkingV1 *NetworkingV1Graph
 }
 
 // Node represents a node in the graph.
@@ -153,6 +155,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 		Nodes:         make(map[string]map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
 	}
+	g.networkingV1 = NewNetworkingV1Graph(g)
 
 	errs := []error{}
 
@@ -169,6 +172,11 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 // Unstructured adds an unstructured node to the Graph.
 func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 	g.Node(unstr.GroupVersionKind(), unstr)
+
+	switch unstr.GetAPIVersion() {
+	case "networking.k8s.io/v1":
+		return g.NetworkingV1().Unstructured(unstr)
+	}
 
 	switch unstr.GetKind() {
 	case "Pod":
