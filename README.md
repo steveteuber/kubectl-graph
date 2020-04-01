@@ -9,3 +9,7 @@ A kubectl plugin to visualize Kubernetes resources and relationships.
 ## Status
 
 This `kubectl` plugin is under active development.
+
+## License
+
+This project is licensed under the Apache License 2.0, see [LICENSE](./LICENSE) for more information.
