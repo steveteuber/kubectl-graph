@@ -109,6 +109,7 @@ type Graph struct {
 
 	clientset *kubernetes.Clientset
 
+	coreV1       *CoreV1Graph
 	networkingV1 *NetworkingV1Graph
 }
 
@@ -155,6 +156,8 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 		Nodes:         make(map[string]map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
 	}
+
+	g.coreV1 = NewCoreV1Graph(g)
 	g.networkingV1 = NewNetworkingV1Graph(g)
 
 	errs := []error{}
