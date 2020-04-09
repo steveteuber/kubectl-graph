@@ -91,22 +91,52 @@ func (g *CoreV1Graph) Container(pod *v1.Pod, container v1.Container) (*Node, err
 			Name:      container.Name,
 		},
 	)
-	i, err := g.ContainerImage(v1.ContainerImage{Names: []string{container.Image}})
+
+	i, err := g.Image(container.Image)
 	if err != nil {
 		return nil, err
 	}
-	g.graph.Relationship(n, "ContainerImage", i)
+	g.graph.Relationship(n, "Image", i)
 
 	return n, nil
 }
 
-// ContainerImage adds a v1.ContainerImage resource to the Graph.
-func (g *CoreV1Graph) ContainerImage(image v1.ContainerImage) (*Node, error) {
+// Image adds a v1.Image resource to the Graph.
+func (g *CoreV1Graph) Image(name string) (*Node, error) {
+	registry := "docker.io"
+	image := name
+
+	if strings.Count(image, "/") > 0 {
+		s := strings.SplitN(image, "/", 2)
+		if strings.Count(s[0], ".") > 0 {
+			registry, image = s[0], s[1]
+		}
+	}
+
 	n := g.graph.Node(
-		schema.FromAPIVersionAndKind(v1.GroupName, "ContainerImage"),
+		schema.FromAPIVersionAndKind("kubectl-graph/v1", "Image"),
 		&metav1.ObjectMeta{
-			UID:  ToUID(strings.Join(image.Names, "-")),
-			Name: strings.Join(image.Names, ","),
+			UID:  ToUID(registry, image),
+			Name: image,
+		},
+	)
+
+	r, err := g.Registry(registry)
+	if err != nil {
+		return nil, err
+	}
+	g.graph.Relationship(n, "Registry", r)
+
+	return n, nil
+}
+
+// Registry adds a v1.Registry resource to the Graph.
+func (g *CoreV1Graph) Registry(name string) (*Node, error) {
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind("kubectl-graph/v1", "Registry"),
+		&metav1.ObjectMeta{
+			UID:  ToUID(name),
+			Name: name,
 		},
 	)
 
