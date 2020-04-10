@@ -61,6 +61,12 @@ func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error)
 			return err
 		}
 		_, err = g.Service(obj)
+	case "Node":
+		obj := &v1.Node{}
+		if err = FromUnstructured(unstr, obj); err != nil {
+			return err
+		}
+		_, err = g.Node(obj)
 	}
 
 	return err
@@ -209,6 +215,22 @@ func (g *CoreV1Graph) ServiceTypeExternalName(obj *v1.Service) (*Node, error) {
 		},
 	)
 	g.graph.Relationship(n, "ExternalName", e)
+
+	return n, nil
+}
+
+// Node adds a v1.Node resource to the Graph.
+func (g *CoreV1Graph) Node(obj *v1.Node) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	k := g.graph.Node(
+		schema.FromAPIVersionAndKind("kubectl-graph/v1", "Kernel"),
+		&metav1.ObjectMeta{
+			UID:  ToUID(obj.Status.NodeInfo.KernelVersion),
+			Name: obj.Status.NodeInfo.KernelVersion,
+		},
+	)
+	g.graph.Relationship(n, "Kernel", k)
 
 	return n, nil
 }
