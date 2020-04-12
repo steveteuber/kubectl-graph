@@ -241,5 +241,14 @@ func (g *CoreV1Graph) Node(obj *v1.Node) (*Node, error) {
 	)
 	g.graph.Relationship(n, "OSImage", o)
 
+	r := g.graph.Node(
+		schema.FromAPIVersionAndKind("kubectl-graph/v1", "ContainerRuntime"),
+		&metav1.ObjectMeta{
+			UID:  ToUID(obj.Status.NodeInfo.ContainerRuntimeVersion),
+			Name: obj.Status.NodeInfo.ContainerRuntimeVersion,
+		},
+	)
+	g.graph.Relationship(n, "ContainerRuntime", r)
+
 	return n, nil
 }
