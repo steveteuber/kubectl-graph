@@ -232,5 +232,14 @@ func (g *CoreV1Graph) Node(obj *v1.Node) (*Node, error) {
 	)
 	g.graph.Relationship(n, "Kernel", k)
 
+	o := g.graph.Node(
+		schema.FromAPIVersionAndKind("kubectl-graph/v1", "OSImage"),
+		&metav1.ObjectMeta{
+			UID:  ToUID(obj.Status.NodeInfo.OSImage),
+			Name: obj.Status.NodeInfo.OSImage,
+		},
+	)
+	g.graph.Relationship(n, "OSImage", o)
+
 	return n, nil
 }
