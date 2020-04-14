@@ -223,32 +223,22 @@ func (g *CoreV1Graph) ServiceTypeExternalName(obj *v1.Service) (*Node, error) {
 func (g *CoreV1Graph) Node(obj *v1.Node) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
-	k := g.graph.Node(
-		schema.FromAPIVersionAndKind("kubectl-graph/v1", "Kernel"),
-		&metav1.ObjectMeta{
-			UID:  ToUID(obj.Status.NodeInfo.KernelVersion),
-			Name: obj.Status.NodeInfo.KernelVersion,
-		},
-	)
-	g.graph.Relationship(n, "Kernel", k)
-
-	o := g.graph.Node(
-		schema.FromAPIVersionAndKind("kubectl-graph/v1", "OSImage"),
-		&metav1.ObjectMeta{
-			UID:  ToUID(obj.Status.NodeInfo.OSImage),
-			Name: obj.Status.NodeInfo.OSImage,
-		},
-	)
-	g.graph.Relationship(n, "OSImage", o)
-
-	r := g.graph.Node(
-		schema.FromAPIVersionAndKind("kubectl-graph/v1", "ContainerRuntime"),
-		&metav1.ObjectMeta{
-			UID:  ToUID(obj.Status.NodeInfo.ContainerRuntimeVersion),
-			Name: obj.Status.NodeInfo.ContainerRuntimeVersion,
-		},
-	)
-	g.graph.Relationship(n, "ContainerRuntime", r)
+	infos := map[string]string{
+		"Architecture": obj.Status.NodeInfo.Architecture,
+		"Runtime":      obj.Status.NodeInfo.ContainerRuntimeVersion,
+		"Kernel":       obj.Status.NodeInfo.KernelVersion,
+		"OSImage":      obj.Status.NodeInfo.OSImage,
+	}
+	for kind, info := range infos {
+		i := g.graph.Node(
+			schema.FromAPIVersionAndKind("kubectl-graph/v1", kind),
+			&metav1.ObjectMeta{
+				UID:  ToUID(info),
+				Name: info,
+			},
+		)
+		g.graph.Relationship(n, kind, i)
+	}
 
 	return n, nil
 }
