@@ -6,6 +6,18 @@
 
 A kubectl plugin to visualize Kubernetes resources and relationships.
 
+## Examples
+
+### Grafana Loki
+
+Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by Prometheus.
+
+![Kubernetes resource graph for Grafana Loki](assets/cypher-loki.png)
+
+```
+kubectl graph all -n loki -o cypher | cypher-shell -u neo4j -p secret
+```
+
 ## Status
 
 This `kubectl` plugin is under active development.
