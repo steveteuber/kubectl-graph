@@ -176,7 +176,8 @@ func (g *CoreV1Graph) Service(obj *v1.Service) (*Node, error) {
 	case v1.ServiceTypeClusterIP:
 		return g.ServiceTypeClusterIP(obj)
 		// case v1.ServiceTypeNodePort:
-		// case v1.ServiceTypeLoadBalancer:
+	case v1.ServiceTypeLoadBalancer:
+		return g.ServiceTypeLoadBalancer(obj)
 	case v1.ServiceTypeExternalName:
 		return g.ServiceTypeExternalName(obj)
 	}
@@ -186,6 +187,25 @@ func (g *CoreV1Graph) Service(obj *v1.Service) (*Node, error) {
 
 // ServiceTypeClusterIP adds a v1.Service of type ClusterIP to the Graph.
 func (g *CoreV1Graph) ServiceTypeClusterIP(obj *v1.Service) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	options := metav1.GetOptions{}
+	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(obj.GetName(), options)
+	if err != nil {
+		return nil, err
+	}
+
+	e, err := g.Endpoints(endpoints)
+	if err != nil {
+		return nil, err
+	}
+	g.graph.Relationship(n, "Endpoints", e)
+
+	return n, nil
+}
+
+// ServiceTypeLoadBalancer adds a v1.Service of type LoadBalancer to the Graph.
+func (g *CoreV1Graph) ServiceTypeLoadBalancer(obj *v1.Service) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
 	options := metav1.GetOptions{}
