@@ -67,11 +67,11 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 	}
 
 	for _, pod := range pods.Items {
-		p, err := g.graph.Pod(&pod)
+		p, err := g.graph.CoreV1().Pod(&pod)
 		if err != nil {
 			return nil, err
 		}
-		g.graph.Relationship(n, "PodSelector", p)
+		g.graph.Relationship(n, "Pod", p)
 	}
 
 	return n, nil
