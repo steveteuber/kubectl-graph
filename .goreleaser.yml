@@ -16,7 +16,7 @@ builds:
   - arm64
 
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Tag }}_checksums.txt'
+  name_template: 'checksums.txt'
 
 archives:
 - name_template: '{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}'
