@@ -15,6 +15,8 @@
 package graph
 
 import (
+	"context"
+
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -61,7 +63,7 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 	}
 
 	options := metav1.ListOptions{LabelSelector: selector.String(), FieldSelector: "status.phase=Running"}
-	pods, err := g.graph.clientset.CoreV1().Pods(obj.GetNamespace()).List(options)
+	pods, err := g.graph.clientset.CoreV1().Pods(obj.GetNamespace()).List(context.TODO(), options)
 	if err != nil {
 		return nil, err
 	}

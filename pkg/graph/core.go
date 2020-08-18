@@ -15,6 +15,7 @@
 package graph
 
 import (
+	"context"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -190,7 +191,7 @@ func (g *CoreV1Graph) ServiceTypeClusterIP(obj *v1.Service) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
 	options := metav1.GetOptions{}
-	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(obj.GetName(), options)
+	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), options)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (g *CoreV1Graph) ServiceTypeLoadBalancer(obj *v1.Service) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
 	options := metav1.GetOptions{}
-	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(obj.GetName(), options)
+	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), options)
 	if err != nil {
 		return nil, err
 	}
