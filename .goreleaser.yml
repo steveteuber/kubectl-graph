@@ -3,8 +3,7 @@ before:
   - go mod download
 
 builds:
-- id: kubectl-graph
-  main: ./cmd/kubectl-graph
+- main: ./cmd/kubectl-graph
   binary: kubectl-graph
   env:
   - CGO_ENABLED=0
@@ -17,7 +16,6 @@ builds:
   - arm64
 
 archives:
-- id: kubectl-graph
-  format_overrides:
+- format_overrides:
   - goos: windows
     format: zip
