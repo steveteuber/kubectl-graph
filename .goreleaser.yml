@@ -15,7 +15,11 @@ builds:
   - amd64
   - arm64
 
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Tag }}_checksums.txt'
+
 archives:
-- format_overrides:
+- name_template: '{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}'
+  format_overrides:
   - goos: windows
     format: zip
