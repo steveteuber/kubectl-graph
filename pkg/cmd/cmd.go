@@ -116,7 +116,7 @@ func (o *GraphOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []st
 
 // Validate checks the set of flags provided by the user.
 func (o *GraphOptions) Validate(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
+	if len(args) == 0 && cmdutil.IsFilenameSliceEmpty(o.Filenames, o.Kustomize) {
 		return fmt.Errorf("You must specify the type of resource to graph. %s", cmdutil.SuggestAPIResources(o.CmdParent))
 	}
 	if !(o.OutputFormat == "cypher" || o.OutputFormat == "graphviz") {
