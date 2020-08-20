@@ -36,12 +36,19 @@ var (
 	cypherTemplate = strings.Replace(
 		`// create nodes
 		:begin
-		{{- range $namespace, $node := .Nodes }}
-			{{- if $namespace }}
-		MERGE (node:Namespace {UID: "namespace_{{ $namespace }}"}) ON CREATE SET node.Name = "{{ $namespace }}";
-			{{- end }}
-			{{- range . }}
-		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}";
+		{{- range $cluster, $namespaces := .Nodes }}
+		MERGE (node:Cluster {UID: "cluster_{{ $cluster }}"}) ON CREATE SET node.Name = "{{ $cluster }}";
+			{{- range $namespace, $node := $namespaces }}
+				{{- if $namespace }}
+		MERGE (node:Namespace {UID: "namespace_{{ $namespace }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ $namespace }}";
+					{{- range . }}
+		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}";
+					{{- end }}
+				{{- else }}
+					{{- range . }}
+		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ .Name }}";
+					{{- end }}
+				{{- end }}
 			{{- end }}
 		{{- end }}
 		:commit
@@ -54,9 +61,12 @@ var (
 		{{- range .Relationships }}{{ range . }}
 		MATCH (from:{{ .From.Kind }}),(to:{{ .To.Kind }}) WHERE from.UID = "{{ .From.UID }}" AND to.UID = "{{ .To.UID }}" MERGE (from)-[:{{ .Type }}]->(to);
 		{{- end }}{{ end }}
-		{{- range $namespace, $node := .Nodes }}
-			{{- if $namespace }}
-		MATCH (ns:Namespace) WHERE ns.Name = "{{ $namespace }}" MATCH (node) WHERE node.Namespace = ns.Name AND NOT(()-[]->(node)) MERGE (node)-[:Namespace]->(ns);
+		{{- range $cluster, $namespaces := .Nodes }}
+		MATCH (cl:Cluster) WHERE cl.UID = "cluster_{{ $cluster }}" MATCH (node) WHERE node.ClusterName = cl.Name AND node.Namespace IS NULL AND NOT(()-[]->(node)) MERGE (node)-[:Cluster]->(cl);
+			{{- range $namespace, $node := $namespaces }}
+				{{- if $namespace }}
+		MATCH (ns:Namespace) WHERE ns.UID = "namespace_{{ $namespace }}" MATCH (node) WHERE node.Namespace = ns.Name AND NOT(()-[]->(node)) MERGE (node)-[:Namespace]->(ns);
+				{{- end }}
 			{{- end }}
 		{{- end }}
 		:commit
@@ -65,24 +75,33 @@ var (
 	graphvizTemplate = strings.Replace(
 		`digraph {
 		    graph [rankdir="LR" bgcolor="#F6F6F6"];
-		    node [shape="record" color="lightgray"];
+		    node [shape="record" color="#D3D3D3" style="filled" fillcolor="#FFFFFF"];
 		    edge [color="#4284F3"];
+		{{ range $cluster, $namespaces := .Nodes }}
+		    // create cluster
+		    subgraph "cluster_{{ $cluster }}" {
+		        label="{{ $cluster }}";
+		        bgcolor="#ECEFF1";
 
-		{{- range $namespace, $node := .Nodes }}
-		  {{ if $namespace }}
-		    // create subgraph
-		    subgraph "cluster_{{ $namespace }}" {
-		      label="{{ $namespace }}";
-		      {{- range . }}
-		      "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
+		    {{- range $namespace, $node := $namespaces }}
+		      {{ if $namespace }}
+		        // create namespace
+		        subgraph "cluster_namespace_{{ $namespace }}" {
+		          label="{{ $namespace }}";
+		          bgcolor="#E3F2FD";
+
+		          {{- range . }}
+		          "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
+		          {{- end }}
+		        }
+		      {{- else }}
+		        // create nodes
+		        {{- range . }}
+		        "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
+		        {{- end }}
 		      {{- end }}
-		    }
-		  {{- else }}
-		    // create nodes
-		    {{- range . }}
-		    "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
 		    {{- end }}
-		  {{- end }}
+		    }
 		{{- end }}
 
 		    // create relationships
@@ -104,7 +123,7 @@ func init() {
 
 // Graph stores nodes and relationships between them.
 type Graph struct {
-	Nodes         map[string]map[types.UID]*Node
+	Nodes         map[string]map[string]map[types.UID]*Node
 	Relationships map[types.UID][]*Relationship
 
 	clientset *kubernetes.Clientset
@@ -153,7 +172,7 @@ func FromUnstructured(unstr *unstructured.Unstructured, obj interface{}) error {
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
 	g := &Graph{
 		clientset:     clientset,
-		Nodes:         make(map[string]map[types.UID]*Node),
+		Nodes:         make(map[string]map[string]map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
 	}
 
@@ -188,8 +207,14 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 
 // Node adds a node and the owner references to the Graph.
 func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
-	if g.Nodes[obj.GetNamespace()] == nil {
-		g.Nodes[obj.GetNamespace()] = make(map[types.UID]*Node)
+	if obj.GetClusterName() == "" {
+		obj.SetClusterName(g.clientset.RESTClient().Get().URL().Hostname())
+	}
+	if g.Nodes[obj.GetClusterName()] == nil {
+		g.Nodes[obj.GetClusterName()] = make(map[string]map[types.UID]*Node)
+	}
+	if g.Nodes[obj.GetClusterName()][obj.GetNamespace()] == nil {
+		g.Nodes[obj.GetClusterName()][obj.GetNamespace()] = make(map[types.UID]*Node)
 	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
@@ -200,7 +225,7 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 		Namespace:  obj.GetNamespace(),
 		UID:        obj.GetUID(),
 	}
-	g.Nodes[obj.GetNamespace()][obj.GetUID()] = node
+	g.Nodes[obj.GetClusterName()][obj.GetNamespace()][obj.GetUID()] = node
 
 	for _, ownerRef := range obj.GetOwnerReferences() {
 		owner := g.Node(
