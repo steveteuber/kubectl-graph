@@ -99,11 +99,11 @@ func (g *CoreV1Graph) Container(pod *v1.Pod, container v1.Container) (*Node, err
 		},
 	)
 
-	i, err := g.Image(container.Image)
-	if err != nil {
-		return nil, err
-	}
-	g.graph.Relationship(n, "Image", i)
+	// i, err := g.Image(container.Image)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// g.graph.Relationship(n, "Image", i)
 
 	return n, nil
 }
