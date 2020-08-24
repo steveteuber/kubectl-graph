@@ -1,0 +1,41 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: graph
+spec:
+  version: {{ .TagName }}
+  homepage: https://github.com/steveteuber/kubectl-graph
+  shortDescription: Visualize Kubernetes resources and relationships.
+  description: |
+    This plugin generates a visual representation of Kubernetes resources and
+    relationships. The graph is outputted in dot or cypher format, which can
+    be used by Graphiz or Neo4j.
+  caveats: |
+    This plugin requires Graphiz or Neo4j to visualize the dependency graph.
+    Please see the quickstart guide for more information:
+    https://github.com/steveteuber/kubectl-graph#quickstart
+  platforms:
+  - bin: kubectl-graph
+    {{ addURIAndSha "https://github.com/steveteuber/kubectl-graph/releases/download/{{ .TagName }}/kubectl-graph_{{ .TagName }}_darwin_amd64.tar.gz" .TagName }}
+    selector:
+      matchLabels:
+        os: darwin
+        arch: amd64
+  - bin: kubectl-graph
+    {{ addURIAndSha "https://github.com/steveteuber/kubectl-graph/releases/download/{{ .TagName }}/kubectl-graph_{{ .TagName }}_linux_amd64.tar.gz" .TagName }}
+    selector:
+      matchLabels:
+        os: linux
+        arch: amd64
+  - bin: kubectl-graph
+    {{ addURIAndSha "https://github.com/steveteuber/kubectl-graph/releases/download/{{ .TagName }}/kubectl-graph_{{ .TagName }}_linux_arm64.tar.gz" .TagName }}
+    selector:
+      matchLabels:
+        os: linux
+        arch: arm64
+  - bin: kubectl-graph.exe
+    {{ addURIAndSha "https://github.com/steveteuber/kubectl-graph/releases/download/{{ .TagName }}/kubectl-graph_{{ .TagName }}_windows_amd64.zip" .TagName }}
+    selector:
+      matchLabels:
+        os: windows
+        arch: amd64
