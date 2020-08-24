@@ -9,9 +9,9 @@ spec:
   description: |
     This plugin generates a visual representation of Kubernetes resources and
     relationships. The graph is outputted in dot or cypher format, which can
-    be used by Graphiz or Neo4j.
+    be used by Graphviz or Neo4j.
   caveats: |
-    This plugin requires Graphiz or Neo4j to visualize the dependency graph.
+    This plugin requires Graphviz or Neo4j to visualize the dependency graph.
     Please see the quickstart guide for more information:
     https://github.com/steveteuber/kubectl-graph#quickstart
   platforms:
