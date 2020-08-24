@@ -40,7 +40,7 @@ This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io).
 To install it, run the following command:
 
 ```
-kubectl krew install kubectl-graph
+kubectl krew install graph
 ```
 
 ## Examples
