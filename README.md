@@ -9,6 +9,40 @@
 
 A kubectl plugin to visualize Kubernetes resources and relationships.
 
+## Quickstart
+
+This quickstart guide uses [homebrew](https://brew.sh) on `macOS`.
+
+### Prerequisites
+
+This plugin requires [Graphviz](https://graphviz.org) *or* [Neo4j](https://neo4j.com) to visualize the dependency graph.
+
+#### Graphviz
+
+To install the `dot` command line utility:
+
+```
+brew install graphviz
+```
+
+#### Neo4j
+
+To install the `cypher-shell` command line utility and the `Neo4j Desktop.app`:
+
+```
+brew install cypher-shell
+brew cask install neo4j
+```
+
+### Installation
+
+This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io).
+To install it, run the following command:
+
+```
+kubectl krew install kubectl-graph
+```
+
 ## Examples
 
 ### Grafana Loki
