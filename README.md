@@ -3,7 +3,7 @@
 [![status](https://img.shields.io/badge/status-WIP-green.svg)](#status)
 [![license](https://img.shields.io/github/license/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/master/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/steveteuber/kubectl-graph)](https://goreportcard.com/report/github.com/steveteuber/kubectl-graph)
-[![Workflow Status](https://img.shields.io/github/workflow/status/steveteuber/kubectl-graph/Release)](https://github.com/steveteuber/kubectl-graph/actions?query=workflow%3ARelease)
+[![Workflow Status](https://img.shields.io/github/workflow/status/steveteuber/kubectl-graph/Release)](https://github.com/steveteuber/kubectl-graph/actions?query=workflow:Release)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/master/go.mod#L3)
 [![Latest Release](https://img.shields.io/github/v/release/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/releases/latest)
 
