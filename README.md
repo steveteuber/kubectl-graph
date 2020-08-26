@@ -47,7 +47,7 @@ kubectl krew install graph
 #### Graphviz
 
 This `kubectl graph` command will fetch all running Pods in the namespace `kube-system` and outputs a graph in the DOT format.
-We could also pipe the output directly to the `dot` command line tool, which can create an image file of the graph:
+We could also pipe the output directly to the `dot` command, which can create an image file:
 
 ```
 kubectl graph pods --field-selector status.phase=Running -n kube-system | dot -T svg -o pods.svg
@@ -63,7 +63,7 @@ If you're not happy with the SVG output format, please take a look at the offica
 
 #### Neo4j
 
-Before you can import all your Kubernetes resources and relationships, we need to create a Neo4j database.
+Before you can import all your Kubernetes resources, we need to create a Neo4j database.
 I prefer to use the `Neo4j Desktop.app` installed via `brew cask install neo4j`, but you can also start a Neo4j instance via docker:
 
 ```
@@ -76,7 +76,7 @@ After the container is up and running you can start to import all your Kubernete
 kubectl graph all -n kube-system -o cypher | cypher-shell
 ```
 
-When the import is complete, you can open the Neo4j Browser interface by using the following link http://localhost:7474/.
+When the import is complete, you can open the Neo4j Browser interface at http://localhost:7474/.
 
 ## Examples
 
