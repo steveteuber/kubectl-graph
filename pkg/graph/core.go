@@ -156,17 +156,30 @@ func (g *CoreV1Graph) Endpoints(obj *v1.Endpoints) (*Node, error) {
 
 	for _, subset := range obj.Subsets {
 		for _, address := range subset.Addresses {
-			t := g.graph.Node(
-				address.TargetRef.GroupVersionKind(),
-				&metav1.ObjectMeta{
-					UID:       address.TargetRef.UID,
-					Name:      address.TargetRef.Name,
-					Namespace: address.TargetRef.Namespace,
-				},
-			)
-			g.graph.Relationship(n, address.TargetRef.Kind, t)
+			if address.TargetRef != nil {
+				t, err := g.ObjectReference(address.TargetRef)
+				if err != nil {
+					return nil, err
+				}
+
+				g.graph.Relationship(n, t.Kind, t)
+			}
 		}
 	}
+
+	return n, nil
+}
+
+// ObjectReference adds a v1.ObjectReference resource to the Graph.
+func (g *CoreV1Graph) ObjectReference(obj *v1.ObjectReference) (*Node, error) {
+	n := g.graph.Node(
+		obj.GroupVersionKind(),
+		&metav1.ObjectMeta{
+			UID:       obj.UID,
+			Name:      obj.Name,
+			Namespace: obj.Namespace,
+		},
+	)
 
 	return n, nil
 }
