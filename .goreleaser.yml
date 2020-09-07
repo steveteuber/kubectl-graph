@@ -3,20 +3,39 @@ before:
   - go mod download
 
 builds:
-- main: ./cmd/kubectl-graph
+- id: linux
+  main: ./cmd/kubectl-graph
   binary: kubectl-graph
   env:
   - CGO_ENABLED=0
   goos:
   - linux
-  - darwin
-  - windows
   goarch:
   - amd64
   - arm64
 
+- id: darwin
+  main: ./cmd/kubectl-graph
+  binary: kubectl-graph
+  env:
+  - CGO_ENABLED=1
+  goos:
+  - darwin
+  goarch:
+  - amd64
+
+- id: windows
+  main: ./cmd/kubectl-graph
+  binary: kubectl-graph
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - windows
+  goarch:
+  - amd64
+
 checksum:
-  name_template: 'checksums.txt'
+  name_template: checksums.txt
 
 archives:
 - name_template: '{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}'
