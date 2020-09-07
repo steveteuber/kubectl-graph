@@ -28,6 +28,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Update new version in krew-index
+      if: success() && !contains(github.ref, '-')
       uses: rajatjindal/krew-release-bot@v0.0.38
       with:
         krew_template_file: .krew.yml
