@@ -73,7 +73,7 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 		if err != nil {
 			return nil, err
 		}
-		g.graph.Relationship(n, "Pod", p)
+		g.graph.Relationship(n, "Pod", p).Attribute("color", "#9E9E9E")
 	}
 
 	return n, nil
