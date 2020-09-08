@@ -19,6 +19,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -109,7 +110,7 @@ var (
 		    // create relationships
 		{{- range .Relationships }}
 		  {{- range . }}
-		    "{{ .From.UID }}" -> "{{ .To.UID }}";
+		    "{{ .From.UID }}" -> "{{ .To.UID }}"{{ if .Attr }} [{{ .Attr }}]{{ end }};
 		  {{- end }}
 		{{- end }}
 		}
@@ -142,6 +143,21 @@ type Relationship struct {
 	From v1.ObjectReference
 	Type string
 	To   v1.ObjectReference
+	Attr Attributes
+}
+
+// Attributes is a map of key:value.
+type Attributes map[string]string
+
+// String returns all fields listed as a Graphviz attr_list string.
+func (attr Attributes) String() string {
+	selector := make([]string, 0, len(attr))
+	for key, value := range attr {
+		selector = append(selector, fmt.Sprintf("%s=\"%s\"", key, value))
+	}
+
+	sort.StringSlice(selector).Sort()
+	return strings.Join(selector, " ")
 }
 
 // ToUID converts strings to MD5 and returns this as types.UID.
@@ -262,10 +278,16 @@ func (g *Graph) Relationship(from *Node, label string, to *Node) *Relationship {
 		From: v1.ObjectReference{UID: from.UID, Kind: from.Kind},
 		Type: label,
 		To:   v1.ObjectReference{UID: to.UID, Kind: to.Kind},
+		Attr: make(Attributes),
 	}
 	g.Relationships[from.UID] = append(g.Relationships[from.UID], relationship)
 
 	return relationship
+}
+
+// Attribute adds an attribute which is rendered in the Graphviz output format.
+func (r *Relationship) Attribute(key string, value string) {
+	r.Attr[key] = value
 }
 
 // String returns the graph in requested format.
