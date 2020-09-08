@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // CoreV1Graph is used to graph all core resources.
@@ -44,6 +45,12 @@ func (g *Graph) CoreV1() *CoreV1Graph {
 // Unstructured adds an unstructured node to the Graph.
 func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 	switch unstr.GetKind() {
+	case "Namespace":
+		obj := &v1.Namespace{}
+		if err = FromUnstructured(unstr, obj); err != nil {
+			return err
+		}
+		_, err = g.Namespace(obj)
 	case "Pod":
 		obj := &v1.Pod{}
 		if err = FromUnstructured(unstr, obj); err != nil {
@@ -71,6 +78,15 @@ func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error)
 	}
 
 	return err
+}
+
+// Namespace adds a v1.Namespace resource to the Graph.
+func (g *CoreV1Graph) Namespace(namespace *v1.Namespace) (*Node, error) {
+	namespace.SetUID(types.UID(namespace.GetName()))
+	namespace.SetNamespace(namespace.GetName())
+	n := g.graph.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Namespace"), namespace)
+
+	return n, nil
 }
 
 // Pod adds a v1.Pod resource to the Graph.

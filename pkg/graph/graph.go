@@ -77,6 +77,7 @@ var (
 		    graph [rankdir="LR" bgcolor="#F6F6F6"];
 		    node [shape="record" color="#D3D3D3" style="filled" fillcolor="#FFFFFF"];
 		    edge [color="#4284F3"];
+		    compound=true;
 		{{ range $cluster, $namespaces := .Nodes }}
 		    // create cluster
 		    subgraph "cluster_{{ $cluster }}" {
@@ -90,6 +91,7 @@ var (
 		          label="{{ $namespace }}";
 		          bgcolor="#E3F2FD";
 
+		          "{{ $namespace }}" [label="Namespace\l | { {{ $namespace }}\l }" shape="point" style="invis"]
 		          {{- range . }}
 		          "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
 		          {{- end }}
@@ -225,6 +227,10 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 		Namespace:  obj.GetNamespace(),
 		UID:        obj.GetUID(),
 	}
+	if gvk.GroupKind().String() == "Namespace" {
+		return node
+	}
+
 	g.Nodes[obj.GetClusterName()][obj.GetNamespace()][obj.GetUID()] = node
 
 	for _, ownerRef := range obj.GetOwnerReferences() {
