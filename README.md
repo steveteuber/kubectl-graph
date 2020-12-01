@@ -38,6 +38,13 @@ brew install cypher-shell
 This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io).
 To install it, run the following command:
 
+before kubectl 1.19
+```
+kubectl-krew install graph
+```
+
+kubectl from 1.19
+
 ```
 kubectl krew install graph
 ```
@@ -88,6 +95,12 @@ Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation 
 
 ```
 kubectl graph all -n loki -o cypher | cypher-shell -u neo4j -p secret
+```
+
+## Development
+
+```
+go run ./cmd/kubectl-graph/main.go all -n <namspace> | dot -T png -o all.png
 ```
 
 ## Status
