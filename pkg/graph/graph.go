@@ -133,6 +133,7 @@ type Graph struct {
 
 	coreV1       *CoreV1Graph
 	networkingV1 *NetworkingV1Graph
+	routeV1 *RouteV1Graph
 }
 
 // Node represents a node in the graph.
@@ -196,6 +197,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 
 	g.coreV1 = NewCoreV1Graph(g)
 	g.networkingV1 = NewNetworkingV1Graph(g)
+	g.routeV1 = NewRouteV1Graph(g)
 
 	errs := []error{}
 
@@ -218,6 +220,8 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 		return g.CoreV1().Unstructured(unstr)
 	case "networking.k8s.io/v1":
 		return g.NetworkingV1().Unstructured(unstr)
+	case "route.openshift.io/v1":
+		return g.RouteV1().Unstructured(unstr)
 	}
 
 	return err
