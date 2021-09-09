@@ -23,6 +23,7 @@ builds:
   - darwin
   goarch:
   - amd64
+  - arm64
 
 - id: windows
   main: ./cmd/kubectl-graph
