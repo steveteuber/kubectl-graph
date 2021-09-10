@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"github.com/steveteuber/kubectl-graph/pkg/graph"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -129,6 +130,13 @@ func (o *GraphOptions) Validate(cmd *cobra.Command, args []string) error {
 
 // Run performs the graph operation.
 func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(o.ErrOut, "Please wait while retrieving data from %s\n", config.Host)
+
 	r := f.NewBuilder().
 		Unstructured().
 		NamespaceParam(o.Namespace).DefaultNamespace().AllNamespaces(o.AllNamespaces).
@@ -161,7 +169,25 @@ func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		objs[ix] = infos[ix].Object.(*unstructured.Unstructured)
 	}
 
-	graph, err := graph.NewGraph(clientset, objs)
+	bar := progressbar.NewOptions(len(objs),
+		progressbar.OptionSetDescription("Processing..."),
+		progressbar.OptionSetWriter(o.ErrOut),
+		progressbar.OptionSetWidth(10 + len(config.Host)),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}),
+		progressbar.OptionSetPredictTime(false),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(o.ErrOut, "\n")
+		}),
+	)
+
+	graph, err := graph.NewGraph(clientset, objs, func() { bar.Add(1) })
 	if err != nil {
 		return err
 	}
