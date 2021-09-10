@@ -188,7 +188,7 @@ func FromUnstructured(unstr *unstructured.Unstructured, obj interface{}) error {
 }
 
 // NewGraph returns a new initialized a Graph.
-func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured) (*Graph, error) {
+func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured, processed func()) (*Graph, error) {
 	g := &Graph{
 		clientset:     clientset,
 		Nodes:         make(map[string]map[string]map[types.UID]*Node),
@@ -206,6 +206,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 		if err != nil {
 			errs = append(errs, err)
 		}
+		processed()
 	}
 
 	return g, errors.NewAggregate(errs)
