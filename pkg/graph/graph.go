@@ -181,7 +181,7 @@ func ToUID(input ...string) types.UID {
 func FromUnstructured(unstr *unstructured.Unstructured, obj interface{}) error {
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstr.UnstructuredContent(), obj)
 	if err != nil {
-		return fmt.Errorf("Failed to convert %T to %T: %v", unstr, obj, err)
+		return fmt.Errorf("failed to convert %T to %T: %v", unstr, obj, err)
 	}
 
 	return nil
