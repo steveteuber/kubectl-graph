@@ -217,7 +217,7 @@ func (g *CoreV1Graph) Service(obj *v1.Service) (*Node, error) {
 
 // ServiceTypeClusterIP adds a v1.Service of type ClusterIP to the Graph.
 func (g *CoreV1Graph) ServiceTypeClusterIP(obj *v1.Service) (*Node, error) {
-	n := g.graph.Node(obj.GroupVersionKind(), obj)
+	n := g.graph.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Service"), obj)
 
 	options := metav1.GetOptions{}
 	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), options)
@@ -236,7 +236,7 @@ func (g *CoreV1Graph) ServiceTypeClusterIP(obj *v1.Service) (*Node, error) {
 
 // ServiceTypeLoadBalancer adds a v1.Service of type LoadBalancer to the Graph.
 func (g *CoreV1Graph) ServiceTypeLoadBalancer(obj *v1.Service) (*Node, error) {
-	n := g.graph.Node(obj.GroupVersionKind(), obj)
+	n := g.graph.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Service"), obj)
 
 	options := metav1.GetOptions{}
 	endpoints, err := g.graph.clientset.CoreV1().Endpoints(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), options)
@@ -255,7 +255,7 @@ func (g *CoreV1Graph) ServiceTypeLoadBalancer(obj *v1.Service) (*Node, error) {
 
 // ServiceTypeExternalName adds a v1.Service of type ExternalName to the Graph.
 func (g *CoreV1Graph) ServiceTypeExternalName(obj *v1.Service) (*Node, error) {
-	n := g.graph.Node(obj.GroupVersionKind(), obj)
+	n := g.graph.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Service"), obj)
 
 	e := g.graph.Node(
 		schema.FromAPIVersionAndKind(v1.GroupName, "ExternalName"),

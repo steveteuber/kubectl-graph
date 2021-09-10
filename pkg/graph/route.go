@@ -16,10 +16,10 @@ package graph
 
 import (
 	"context"
+
 	v1 "github.com/openshift/api/route/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // RouteV1Graph is used to graph all routing resources.
@@ -55,28 +55,19 @@ func (g *RouteV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error
 
 // Route adds a v1.Route resource to the Graph.
 func (g *RouteV1Graph) Route(obj *v1.Route) (*Node, error) {
-	// add the route-node 
-	obj.SetName(obj.GetName() + "(host: " + obj.Spec.Host + ")")
-	routeNode := g.graph.Node(obj.GroupVersionKind(), obj)
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
-	// extract the service based on information in route-spec
 	options := metav1.GetOptions{}
 	service, err := g.graph.clientset.CoreV1().Services(obj.GetNamespace()).Get(context.TODO(), obj.Spec.To.Name, options)
 	if err != nil {
 		return nil, err
 	}
 
-	// add a service-node
-	serviceNode := g.graph.Node(
-		schema.FromAPIVersionAndKind("v1", "Service"),
-		service,
-	)
+	s, err := g.graph.CoreV1().Service(service)
 	if err != nil {
 		return nil, err
 	}
-	
-	// draw the relationship between route and service
-	g.graph.Relationship(routeNode, "Route", serviceNode)
-	
-	return routeNode, nil
+	g.graph.Relationship(n, "Route", s)
+
+	return n, nil
 }
