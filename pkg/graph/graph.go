@@ -161,8 +161,13 @@ func (attr Attributes) String() string {
 	return strings.Join(selector, " ")
 }
 
-// ToUID converts strings to MD5 and returns this as types.UID.
-func ToUID(input ...string) types.UID {
+// ToUID converts all params to MD5 and returns this as types.UID.
+func ToUID(params ...interface{}) types.UID {
+	input := make([]string, len(params))
+	for _, param := range params {
+		input = append(input, fmt.Sprint(param))
+	}
+
 	bytes := []byte(strings.Join(input, "-"))
 	md5sum := fmt.Sprintf("%x", md5.Sum(bytes))
 

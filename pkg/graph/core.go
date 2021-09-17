@@ -109,7 +109,7 @@ func (g *CoreV1Graph) Container(pod *v1.Pod, container v1.Container) (*Node, err
 	n := g.graph.Node(
 		schema.FromAPIVersionAndKind(v1.GroupName, "Container"),
 		&metav1.ObjectMeta{
-			UID:       ToUID(string(pod.GetUID()), container.Name),
+			UID:       ToUID(pod.GetUID(), container.Name),
 			Namespace: pod.GetNamespace(),
 			Name:      container.Name,
 		},
