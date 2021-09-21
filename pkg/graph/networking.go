@@ -59,16 +59,16 @@ func (g *NetworkingV1Graph) Unstructured(unstr *unstructured.Unstructured) (err 
 func (g *NetworkingV1Graph) Relationship(from *Node, policyType v1.PolicyType, to *Node) (r *Relationship) {
 	switch policyType {
 	case v1.PolicyTypeIngress:
-		r = g.graph.Relationship(from, string(policyType), to)
+		r = g.graph.Relationship(to, string(policyType), from)
 		r.Attribute("color", "#34A853")
-		if from.Kind == "Namespace" {
-			r.Attribute("ltail", fmt.Sprintf("cluster_namespace_%s", from.Name))
+		if to.Kind == "Namespace" {
+			r.Attribute("ltail", fmt.Sprintf("cluster_namespace_%s", to.Name))
 		}
 	case v1.PolicyTypeEgress:
-		r = g.graph.Relationship(to, string(policyType), from)
+		r = g.graph.Relationship(from, string(policyType), to)
 		r.Attribute("color", "#EA4335")
-		if from.Kind == "Namespace" {
-			r.Attribute("lhead", fmt.Sprintf("cluster_namespace_%s", from.Name))
+		if to.Kind == "Namespace" {
+			r.Attribute("lhead", fmt.Sprintf("cluster_namespace_%s", to.Name))
 		}
 	}
 
@@ -96,10 +96,10 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 			return nil, err
 		}
 		if len(obj.Spec.Ingress) != 0 {
-			g.Relationship(n, v1.PolicyTypeIngress, p)
+			g.Relationship(p, v1.PolicyTypeIngress, n)
 		}
 		if len(obj.Spec.Egress) != 0 {
-			g.Relationship(n, v1.PolicyTypeEgress, p)
+			g.Relationship(p, v1.PolicyTypeEgress, n)
 		}
 	}
 
@@ -178,7 +178,7 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerNamespaceAndPodSelector(obj *v1.Net
 			if err != nil {
 				return nil, err
 			}
-			g.Relationship(p, policyType, n)
+			g.Relationship(n, policyType, p)
 		}
 	}
 
@@ -205,7 +205,7 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerNamespaceSelector(obj *v1.NetworkPo
 		if err != nil {
 			return nil, err
 		}
-		g.Relationship(ns, policyType, n)
+		g.Relationship(n, policyType, ns)
 	}
 
 	return n, nil
@@ -231,7 +231,7 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerPodSelector(obj *v1.NetworkPolicy, 
 		if err != nil {
 			return nil, err
 		}
-		g.Relationship(p, policyType, n)
+		g.Relationship(n, policyType, p)
 	}
 
 	return n, nil
@@ -245,7 +245,7 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerIPBlock(obj *v1.NetworkPolicy, poli
 	if err != nil {
 		return nil, err
 	}
-	g.Relationship(i, policyType, n)
+	g.Relationship(n, policyType, i)
 
 	return n, nil
 }
