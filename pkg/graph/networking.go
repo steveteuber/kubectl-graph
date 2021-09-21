@@ -155,12 +155,12 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerPodSelector(obj *v1.NetworkPolicy, 
 	}
 
 	options := metav1.ListOptions{LabelSelector: selector.String(), FieldSelector: "status.phase=Running"}
-	peerPods, err := g.graph.clientset.CoreV1().Pods(obj.GetNamespace()).List(context.TODO(), options)
+	pods, err := g.graph.clientset.CoreV1().Pods(obj.GetNamespace()).List(context.TODO(), options)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, pod := range peerPods.Items {
+	for _, pod := range pods.Items {
 		p, err := g.graph.CoreV1().Pod(&pod)
 		if err != nil {
 			return nil, err
