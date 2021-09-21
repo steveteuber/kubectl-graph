@@ -125,6 +125,8 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 // NetworkPolicyPeer adds a v1.NetworkPolicyPeer resource to the Graph.
 func (g *NetworkingV1Graph) NetworkPolicyPeer(obj *v1.NetworkPolicy, policyType v1.PolicyType, peer v1.NetworkPolicyPeer) (*Node, error) {
 	switch {
+	case peer.NamespaceSelector != nil:
+		return g.NetworkPolicyPeerNamespaceSelector(obj, policyType, peer)
 	case peer.PodSelector != nil:
 		return g.NetworkPolicyPeerPodSelector(obj, policyType, peer)
 	}
@@ -156,4 +158,30 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerPodSelector(obj *v1.NetworkPolicy, 
 	}
 
 	return nil, nil
+}
+
+// NetworkPolicyPeerNamespaceSelector adds a v1.NetworkPolicyPeer of type NamespaceSelector to the Graph.
+func (g *NetworkingV1Graph) NetworkPolicyPeerNamespaceSelector(obj *v1.NetworkPolicy, policyType v1.PolicyType, peer v1.NetworkPolicyPeer) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	selector, err := metav1.LabelSelectorAsSelector(peer.NamespaceSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	options := metav1.ListOptions{LabelSelector: selector.String()}
+	namespaces, err := g.graph.clientset.CoreV1().Namespaces().List(context.TODO(), options)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, namespace := range namespaces.Items {
+		ns, err := g.graph.CoreV1().Namespace(&namespace)
+		if err != nil {
+			return nil, err
+		}
+		g.Relationship(ns, policyType, n)
+	}
+
+	return n, nil
 }
