@@ -53,6 +53,20 @@ func (g *NetworkingV1Graph) Unstructured(unstr *unstructured.Unstructured) (err 
 	return err
 }
 
+// Relationship creates a new relationship between two nodes based on v1.PolicyType.
+func (g *NetworkingV1Graph) Relationship(from *Node, policyType v1.PolicyType, to *Node) (r *Relationship) {
+	switch policyType {
+	case v1.PolicyTypeIngress:
+		r = g.graph.Relationship(from, string(policyType), to)
+		r.Attribute("color", "#34A853")
+	case v1.PolicyTypeEgress:
+		r = g.graph.Relationship(to, string(policyType), from)
+		r.Attribute("color", "#EA4335")
+	}
+
+	return r.Attribute("style", "dashed")
+}
+
 // NetworkPolicy adds a v1.NetworkPolicy resource to the Graph.
 func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
@@ -73,7 +87,12 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 		if err != nil {
 			return nil, err
 		}
-		g.graph.Relationship(n, "Pod", p).Attribute("color", "#9E9E9E")
+		if len(obj.Spec.Ingress) != 0 {
+			g.Relationship(n, v1.PolicyTypeIngress, p)
+		}
+		if len(obj.Spec.Egress) != 0 {
+			g.Relationship(n, v1.PolicyTypeEgress, p)
+		}
 	}
 
 	return n, nil

@@ -296,8 +296,9 @@ func (g *Graph) Relationship(from *Node, label string, to *Node) *Relationship {
 }
 
 // Attribute adds an attribute which is rendered in the Graphviz output format.
-func (r *Relationship) Attribute(key string, value string) {
+func (r *Relationship) Attribute(key string, value string) *Relationship {
 	r.Attr[key] = value
+	return r
 }
 
 // String returns the graph in requested format.
