@@ -21,6 +21,7 @@ import (
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // NetworkingV1Graph is used to graph all networking resources.
@@ -132,10 +133,13 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 // NetworkPolicyPeer adds a v1.NetworkPolicyPeer resource to the Graph.
 func (g *NetworkingV1Graph) NetworkPolicyPeer(obj *v1.NetworkPolicy, policyType v1.PolicyType, peer v1.NetworkPolicyPeer) (*Node, error) {
 	switch {
+	// case peer.NamespaceSelector != nil && peer.PodSelector != nil:
 	case peer.NamespaceSelector != nil:
 		return g.NetworkPolicyPeerNamespaceSelector(obj, policyType, peer)
 	case peer.PodSelector != nil:
 		return g.NetworkPolicyPeerPodSelector(obj, policyType, peer)
+	case peer.IPBlock != nil:
+		return g.NetworkPolicyPeerIPBlock(obj, policyType, peer)
 	}
 
 	return nil, nil
@@ -189,6 +193,33 @@ func (g *NetworkingV1Graph) NetworkPolicyPeerNamespaceSelector(obj *v1.NetworkPo
 		}
 		g.Relationship(ns, policyType, n)
 	}
+
+	return n, nil
+}
+
+// NetworkPolicyPeerIPBlock adds a v1.NetworkPolicyPeer of type IPBlock to the Graph.
+func (g *NetworkingV1Graph) NetworkPolicyPeerIPBlock(obj *v1.NetworkPolicy, policyType v1.PolicyType, peer v1.NetworkPolicyPeer) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	i, err := g.IPBlock(peer.IPBlock.CIDR)
+	if err != nil {
+		return nil, err
+	}
+	g.Relationship(i, policyType, n)
+
+	return n, nil
+}
+
+// IPBlock adds a v1.IPBlock resource to the Graph.
+func (g *NetworkingV1Graph) IPBlock(cidr string) (*Node, error) {
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "IPBlock"),
+		&metav1.ObjectMeta{
+			ClusterName: "External",
+			UID:         ToUID(cidr),
+			Name:        cidr,
+		},
+	)
 
 	return n, nil
 }
