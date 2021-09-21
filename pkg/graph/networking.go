@@ -95,5 +95,65 @@ func (g *NetworkingV1Graph) NetworkPolicy(obj *v1.NetworkPolicy) (*Node, error) 
 		}
 	}
 
+	for _, rule := range obj.Spec.Ingress {
+		if len(rule.From) == 0 {
+			rule.From = append(rule.From, v1.NetworkPolicyPeer{PodSelector: &metav1.LabelSelector{}})
+		}
+		for _, peer := range rule.From {
+			_, err := g.NetworkPolicyPeer(obj, v1.PolicyTypeIngress, peer)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	for _, rule := range obj.Spec.Egress {
+		if len(rule.To) == 0 {
+			rule.To = append(rule.To, v1.NetworkPolicyPeer{PodSelector: &metav1.LabelSelector{}})
+		}
+		for _, peer := range rule.To {
+			_, err := g.NetworkPolicyPeer(obj, v1.PolicyTypeEgress, peer)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return n, nil
+}
+
+// NetworkPolicyPeer adds a v1.NetworkPolicyPeer resource to the Graph.
+func (g *NetworkingV1Graph) NetworkPolicyPeer(obj *v1.NetworkPolicy, policyType v1.PolicyType, peer v1.NetworkPolicyPeer) (*Node, error) {
+	switch {
+	case peer.PodSelector != nil:
+		return g.NetworkPolicyPeerPodSelector(obj, policyType, peer)
+	}
+
+	return nil, nil
+}
+
+// NetworkPolicyPeerPodSelector adds a v1.NetworkPolicyPeer of type PodSelector to the Graph.
+func (g *NetworkingV1Graph) NetworkPolicyPeerPodSelector(obj *v1.NetworkPolicy, policyType v1.PolicyType, peer v1.NetworkPolicyPeer) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	selector, err := metav1.LabelSelectorAsSelector(peer.PodSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	options := metav1.ListOptions{LabelSelector: selector.String(), FieldSelector: "status.phase=Running"}
+	peerPods, err := g.graph.clientset.CoreV1().Pods(obj.GetNamespace()).List(context.TODO(), options)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range peerPods.Items {
+		p, err := g.graph.CoreV1().Pod(&pod)
+		if err != nil {
+			return nil, err
+		}
+		g.Relationship(n, v1.PolicyTypeIngress, p)
+	}
+
+	return nil, nil
 }
