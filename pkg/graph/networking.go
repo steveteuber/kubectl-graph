@@ -16,6 +16,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,9 +60,15 @@ func (g *NetworkingV1Graph) Relationship(from *Node, policyType v1.PolicyType, t
 	case v1.PolicyTypeIngress:
 		r = g.graph.Relationship(from, string(policyType), to)
 		r.Attribute("color", "#34A853")
+		if from.Kind == "Namespace" {
+			r.Attribute("ltail", fmt.Sprintf("cluster_namespace_%s", from.Name))
+		}
 	case v1.PolicyTypeEgress:
 		r = g.graph.Relationship(to, string(policyType), from)
 		r.Attribute("color", "#EA4335")
+		if from.Kind == "Namespace" {
+			r.Attribute("lhead", fmt.Sprintf("cluster_namespace_%s", from.Name))
+		}
 	}
 
 	return r.Attribute("style", "dashed")
