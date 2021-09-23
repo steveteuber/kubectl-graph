@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
@@ -48,6 +49,7 @@ type GraphOptions struct {
 	FieldSelector     string
 	LabelSelector     string
 	Namespace         string
+	Namespaces        []string
 	OutputFormat      string
 
 	resource.FilenameOptions
@@ -102,6 +104,8 @@ func (o *GraphOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
+	o.Namespaces = strings.Split(o.Namespace, ",")
+
 	if o.AllNamespaces {
 		o.ExplicitNamespace = false
 	}
@@ -137,42 +141,44 @@ func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string)
 
 	fmt.Fprintf(o.ErrOut, "Please wait while retrieving data from %s\n", config.Host)
 
-	r := f.NewBuilder().
-		Unstructured().
-		NamespaceParam(o.Namespace).DefaultNamespace().AllNamespaces(o.AllNamespaces).
-		FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
-		LabelSelectorParam(o.LabelSelector).
-		FieldSelectorParam(o.FieldSelector).
-		RequestChunksOf(o.ChunkSize).
-		ResourceTypeOrNameArgs(true, args...).
-		ContinueOnError().
-		Latest().
-		Flatten().
-		Do()
-
-	if err := r.Err(); err != nil {
-		return err
-	}
-
 	clientset, err := f.KubernetesClientSet()
 	if err != nil {
 		return err
 	}
 
-	infos, err := r.Infos()
-	if err != nil {
-		return err
-	}
+	objs := []*unstructured.Unstructured{}
+	for _, namespace := range o.Namespaces {
+		r := f.NewBuilder().
+			Unstructured().
+			NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.AllNamespaces).
+			FilenameParam(o.ExplicitNamespace, &o.FilenameOptions).
+			LabelSelectorParam(o.LabelSelector).
+			FieldSelectorParam(o.FieldSelector).
+			RequestChunksOf(o.ChunkSize).
+			ResourceTypeOrNameArgs(true, args...).
+			ContinueOnError().
+			Latest().
+			Flatten().
+			Do()
 
-	objs := make([]*unstructured.Unstructured, len(infos))
-	for ix := range infos {
-		objs[ix] = infos[ix].Object.(*unstructured.Unstructured)
+		if err := r.Err(); err != nil {
+			return err
+		}
+
+		infos, err := r.Infos()
+		if err != nil {
+			return err
+		}
+
+		for _, info := range infos {
+			objs = append(objs, info.Object.(*unstructured.Unstructured))
+		}
 	}
 
 	bar := progressbar.NewOptions(len(objs),
 		progressbar.OptionSetDescription("Processing..."),
 		progressbar.OptionSetWriter(o.ErrOut),
-		progressbar.OptionSetWidth(10 + len(config.Host)),
+		progressbar.OptionSetWidth(10+len(config.Host)),
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetTheme(progressbar.Theme{
 			Saucer:        "=",
