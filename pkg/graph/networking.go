@@ -44,6 +44,12 @@ func (g *Graph) NetworkingV1() *NetworkingV1Graph {
 // Unstructured adds an unstructured node to the Graph.
 func (g *NetworkingV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 	switch unstr.GetKind() {
+	case "Ingress":
+		obj := &v1.Ingress{}
+		if err = FromUnstructured(unstr, obj); err != nil {
+			return err
+		}
+		_, err = g.Ingress(obj)
 	case "NetworkPolicy":
 		obj := &v1.NetworkPolicy{}
 		if err = FromUnstructured(unstr, obj); err != nil {
@@ -73,6 +79,63 @@ func (g *NetworkingV1Graph) Relationship(from *Node, policyType v1.PolicyType, t
 	}
 
 	return r.Attribute("style", "dashed")
+}
+
+// Ingress adds a v1.Ingress resource to the Graph.
+func (g *NetworkingV1Graph) Ingress(obj *v1.Ingress) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	for _, rule := range obj.Spec.Rules {
+		if rule.HTTP != nil {
+			for _, path := range rule.HTTP.Paths {
+				b, err := g.IngressBackend(obj, path.Backend)
+				if err != nil {
+					return nil, err
+				}
+				g.Relationship(b, v1.PolicyTypeIngress, n)
+			}
+		}
+
+		h, err := g.Host(rule.Host)
+		if err != nil {
+			return nil, err
+		}
+		g.Relationship(n, v1.PolicyTypeIngress, h)
+	}
+
+	return n, nil
+}
+
+// IngressBackend adds a v1.IngressBackend resource to the Graph.
+func (g *NetworkingV1Graph) IngressBackend(obj *v1.Ingress, backend v1.IngressBackend) (*Node, error) {
+	switch {
+	case backend.Service != nil:
+		options := metav1.GetOptions{}
+		service, err := g.graph.clientset.CoreV1().Services(obj.GetNamespace()).Get(context.TODO(), backend.Service.Name, options)
+		if err != nil {
+			return nil, err
+		}
+
+		return g.graph.CoreV1().Service(service)
+	case backend.Resource != nil:
+		return g.graph.CoreV1().TypedLocalObjectReference(backend.Resource, obj.GetNamespace())
+	}
+
+	return nil, fmt.Errorf("%v: backend is not supported yet", obj.GroupVersionKind())
+}
+
+// Host adds a v1.Host resource to the Graph.
+func (g *NetworkingV1Graph) Host(name string) (*Node, error) {
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "Host"),
+		&metav1.ObjectMeta{
+			ClusterName: "External",
+			UID:         ToUID(name),
+			Name:        name,
+		},
+	)
+
+	return n, nil
 }
 
 // NetworkPolicy adds a v1.NetworkPolicy resource to the Graph.
