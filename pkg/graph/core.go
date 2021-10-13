@@ -200,6 +200,20 @@ func (g *CoreV1Graph) ObjectReference(obj *v1.ObjectReference) (*Node, error) {
 	return n, nil
 }
 
+// TypedLocalObjectReference adds a v1.TypedLocalObjectReference resource to the Graph.
+func (g *CoreV1Graph) TypedLocalObjectReference(obj *v1.TypedLocalObjectReference, namespace string) (*Node, error) {
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, *obj.APIGroup),
+		&metav1.ObjectMeta{
+			UID:       ToUID(obj.APIGroup, obj.Kind, obj.Name),
+			Name:      obj.Name,
+			Namespace: namespace,
+		},
+	)
+
+	return n, nil
+}
+
 // Service adds a v1.Service resource to the Graph.
 func (g *CoreV1Graph) Service(obj *v1.Service) (*Node, error) {
 	switch obj.Spec.Type {
