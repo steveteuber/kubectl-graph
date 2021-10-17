@@ -1,89 +1,122 @@
 # kubectl-graph
 
-[![status](https://img.shields.io/badge/status-WIP-green.svg)](#status)
-[![license](https://img.shields.io/github/license/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/master/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/steveteuber/kubectl-graph)](https://goreportcard.com/report/github.com/steveteuber/kubectl-graph)
 [![Workflow Status](https://img.shields.io/github/workflow/status/steveteuber/kubectl-graph/Release)](https://github.com/steveteuber/kubectl-graph/actions?query=workflow:Release)
+[![GitHub Issues](https://img.shields.io/github/issues/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/issues)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/master/go.mod#L3)
 [![Latest Release](https://img.shields.io/github/v/release/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/releases/latest)
 
 A kubectl plugin to visualize Kubernetes resources and relationships.
 
-## Quickstart
-
-This quickstart guide uses [homebrew](https://brew.sh) and [docker](https://www.docker.com) on `macOS` in the usage examples.
-
-### Prerequisites
+## Prerequisites
 
 This plugin requires [Graphviz](https://graphviz.org) *or* [Neo4j](https://neo4j.com) to visualize the dependency graph.
 
-#### Graphviz
+### Graphviz
 
-To render the *default* output format, you'll need to install the `dot` command line tool first:
+The *default* output format requires `dot` to convert the output into a useful format.
 
 ```
 brew install graphviz
 ```
 
-#### Neo4j
+### Neo4j
 
-To connect to a Neo4j database, you'll need to install the `cypher-shell` command line tool first:
+The *cypher* output format requires `cypher-shell` to connect to a Neo4j database.
 
 ```
 brew install cypher-shell
 ```
 
-### Installation
+## Installation
 
-This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io).
-To install it, run the following command:
-
-before kubectl 1.19
-```
-kubectl-krew install graph
-```
-
-kubectl from 1.19
+This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io). To install it, run the following command:
 
 ```
 kubectl krew install graph
 ```
 
+## Quickstart
+
+This quickstart guide uses macOS. It's possible that the commands can differ on other operating systems.
+
 ### Usage
 
-#### Graphviz
+In general, this plugin is working like `kubectl get` but it tries to resolve relationships between the Kubernetes
+resources before it prints a graph in `dot` *or* `cyper` format. By default, the plugin will use `dot` as output format.
 
-This `kubectl graph` command will fetch all running Pods in the namespace `kube-system` and outputs a graph in the DOT format.
-We could also pipe the output directly to the `dot` command, which can create an image file:
+```
+kubectl graph [(-o|--output=)cql|cypher|dot|graphviz] (TYPE[.VERSION][.GROUP] ...) [flags]
+```
+
+### Graphviz
+
+When you have installed the `dot` command line tool, then you can start to fetch all running Pods in the
+`kube-system` namespace and pipe the output directly to the `dot` command.
 
 ```
 kubectl graph pods --field-selector status.phase=Running -n kube-system | dot -T svg -o pods.svg
 ```
 
-Now we'll have an image file in the current working directory. This SVG file can then be viewed in any web browser:
+Now you will have a `pods.svg` file in the current working directory, which can be viewed with any web browser:
 
 ```
 open pods.svg
 ```
 
-If you're not happy with the SVG output format, please take a look at the offical [Graphviz](https://graphviz.org/doc/info/output.html) documentation.
+If you're not happy with SVG as output format, please take a look at the offical [documentation](https://graphviz.org/doc/info/output.html).
 
-#### Neo4j
+### Neo4j
 
-Before you can import all your Kubernetes resources, we need to create a Neo4j database.
-I prefer to use the `Neo4j Desktop.app` installed via `brew cask install neo4j`, but you can also start a Neo4j instance via docker:
+Before you can import all your Kubernetes resources, you will need to create a Neo4j database.
+This can be done in multiple ways and is based on your preference.
+
+<details>
+<summary><strong>Docker</strong></summary><br>
+
+[Docker](https://docs.docker.com/get-started/) is the easiest way to get started with a Neo4j server and an empty database.
 
 ```
-docker run --rm -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=none neo4j
+docker run --rm -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/secret neo4j
 ```
 
-After the container is up and running you can start to import all your Kubernetes resources into Neo4j:
+When the container is up and running then you can open the Neo4j Browser interface at http://localhost:7474/.
+</details>
+
+<details>
+<summary><strong>Neo4j Desktop</strong></summary><br>
+
+The [Neo4j Desktop](https://neo4j.com/developer/neo4j-desktop/) application lets you easily create any number of local databases.
 
 ```
-kubectl graph all -n kube-system -o cypher | cypher-shell
+brew install --cask neo4j
 ```
 
-When the import is complete, you can open the Neo4j Browser interface at http://localhost:7474/.
+After installation, open the `Neo4j Desktop.app` and do the following steps:
+
+1. Create a new project and give it a name.
+2. Create a new local DBMS with a name like `quickstart` and password `secret`.
+3. Click Start and enter the password.
+4. When the database is up and running then you can click Open to open the Neo4j Browser interface.
+
+![Neo4j Desktop](./assets/neo4j-desktop.png)
+</details>
+
+When you have opened the Neo4j Browser interface, then you can start to fetch all Pods in the
+`kube-system` namespace and pipe the output directly to the `cypher-shell` command.
+
+```
+kubectl graph all -n kube-system -o cypher | cypher-shell -u neo4j -p secret
+```
+
+Within the Neo4j Browser interface, enter the following in the command line to render all nodes as a visual graph:
+
+```
+MATCH (n) RETURN n
+```
+
+For more information about the clauses in the Cypher query language, please take a look at the offical [documentation](https://neo4j.com/docs/cypher-manual/current/clauses/).
 
 ## Examples
 
@@ -91,7 +124,7 @@ When the import is complete, you can open the Neo4j Browser interface at http://
 
 Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by Prometheus.
 
-![Kubernetes resource graph for Grafana Loki](assets/cypher-loki.png)
+![Grafana Loki](assets/grafana-loki.png)
 
 ```
 kubectl graph all -n loki -o cypher | cypher-shell -u neo4j -p secret
@@ -99,13 +132,12 @@ kubectl graph all -n loki -o cypher | cypher-shell -u neo4j -p secret
 
 ## Development
 
+If you wish to work on the plugin, you'll first need [Go](http://www.golang.org/) installed on your machine
+and then you can simply run the following command to test your changes:
+
 ```
 go run ./cmd/kubectl-graph/main.go all -n <namspace> | dot -T png -o all.png
 ```
-
-## Status
-
-This `kubectl` plugin is under active development.
 
 ## License
 
