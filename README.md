@@ -116,7 +116,7 @@ Within the Neo4j Browser interface, enter the following in the command line to r
 MATCH (n) RETURN n
 ```
 
-For more information about the clauses in the Cypher query language, please take a look at the offical [documentation](https://neo4j.com/docs/cypher-manual/current/clauses/).
+For more information about the Cypher query language, please take a look at the offical [documentation](https://neo4j.com/docs/cypher-manual/current/clauses/).
 
 ## Examples
 

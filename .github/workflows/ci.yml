@@ -32,5 +32,5 @@ jobs:
     - name: Build Snapshot
       uses: goreleaser/goreleaser-action@v2
       with:
-        version: v0.181.1
+        version: latest
         args: build --snapshot --rm-dist
