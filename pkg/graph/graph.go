@@ -31,90 +31,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
+
+	// Import to embed templates into go binary
+	_ "embed"
 )
 
 var (
-	cypherTemplate = strings.Replace(
-		`// create nodes
-		:begin
-		{{- range $cluster, $namespaces := .Nodes }}
-		MERGE (node:Cluster {UID: "cluster_{{ $cluster }}"}) ON CREATE SET node.Name = "{{ $cluster }}";
-			{{- range $namespace, $node := $namespaces }}
-				{{- if $namespace }}
-		MERGE (node:Namespace {UID: "namespace_{{ $namespace }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ $namespace }}";
-					{{- range . }}
-		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}";
-					{{- end }}
-				{{- else }}
-					{{- range . }}
-		MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ .Name }}";
-					{{- end }}
-				{{- end }}
-			{{- end }}
-		{{- end }}
-		:commit
+	//go:embed templates/cypher.tmpl
+	cypherTemplate string
 
-		// wait for index completion
-		call db.awaitIndexes();
-
-		// create relationships
-		:begin
-		{{- range .Relationships }}{{ range . }}
-		MATCH (from:{{ .From.Kind }}),(to:{{ .To.Kind }}) WHERE from.UID = "{{ .From.UID }}" AND to.UID = "{{ .To.UID }}" MERGE (from)-[:{{ .Type }}]->(to);
-		{{- end }}{{ end }}
-		{{- range $cluster, $namespaces := .Nodes }}
-		MATCH (cl:Cluster) WHERE cl.UID = "cluster_{{ $cluster }}" MATCH (node) WHERE node.ClusterName = cl.Name AND node.Namespace IS NULL AND NOT(()-[]->(node)) MERGE (node)-[:Cluster]->(cl);
-			{{- range $namespace, $node := $namespaces }}
-				{{- if $namespace }}
-		MATCH (ns:Namespace) WHERE ns.UID = "namespace_{{ $namespace }}" MATCH (node) WHERE node.Namespace = ns.Name AND NOT(()-[]->(node)) MERGE (node)-[:Namespace]->(ns);
-				{{- end }}
-			{{- end }}
-		{{- end }}
-		:commit
-		`, "\t\t", "", -1)
-
-	graphvizTemplate = strings.Replace(
-		`digraph {
-		    graph [rankdir="LR" bgcolor="#F6F6F6"];
-		    node [shape="record" color="#D3D3D3" style="filled" fillcolor="#FFFFFF"];
-		    edge [color="#4284F3"];
-		    compound=true;
-		{{ range $cluster, $namespaces := .Nodes }}
-		    // create cluster
-		    subgraph "cluster_{{ $cluster }}" {
-		        label="{{ $cluster }}";
-		        bgcolor="#ECEFF1";
-
-		    {{- range $namespace, $node := $namespaces }}
-		      {{ if $namespace }}
-		        // create namespace
-		        subgraph "cluster_namespace_{{ $namespace }}" {
-		          label="{{ $namespace }}";
-		          bgcolor="#E3F2FD";
-
-		          "{{ $namespace }}" [label="Namespace\l | { {{ $namespace }}\l }" shape="point" style="invis"]
-		          {{- range . }}
-		          "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
-		          {{- end }}
-		        }
-		      {{- else }}
-		        // create nodes
-		        {{- range . }}
-		        "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
-		        {{- end }}
-		      {{- end }}
-		    {{- end }}
-		    }
-		{{- end }}
-
-		    // create relationships
-		{{- range .Relationships }}
-		  {{- range . }}
-		    "{{ .From.UID }}" -> "{{ .To.UID }}"{{ if .Attr }} [{{ .Attr }}]{{ end }};
-		  {{- end }}
-		{{- end }}
-		}
-		`, "\t\t", "", -1)
+	//go:embed templates/graphviz.tmpl
+	graphvizTemplate string
 
 	templates = template.New("output")
 )
@@ -133,7 +60,7 @@ type Graph struct {
 
 	coreV1       *CoreV1Graph
 	networkingV1 *NetworkingV1Graph
-	routeV1 *RouteV1Graph
+	routeV1      *RouteV1Graph
 }
 
 // Node represents a node in the graph.
