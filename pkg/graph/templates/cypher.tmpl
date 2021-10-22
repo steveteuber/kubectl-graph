@@ -6,11 +6,11 @@ MERGE (node:Cluster {UID: "{{ $cluster }}"}) ON CREATE SET node.Name = "{{ $clus
     {{- if $namespace }}
 MERGE (node:Namespace {UID: "{{ $namespace }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ $namespace }}";
       {{- range . }}
-MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}";
+MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}"{{ if .Labels }}, {{ .Labels }}{{ end }};
       {{- end }}
     {{- else }}
       {{- range . }}
-MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ .Name }}";
+MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ .Name }}"{{ if .Labels }}, {{ .Labels }}{{ end }};
       {{- end }}
     {{- end }}
   {{- end }}

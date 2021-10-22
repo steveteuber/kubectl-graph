@@ -19,6 +19,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -64,7 +65,29 @@ type Graph struct {
 }
 
 // Node represents a node in the graph.
-type Node v1.ObjectReference
+type Node struct {
+	APIVersion string
+	Kind       string
+	Labels     Labels
+	Name       string
+	Namespace  string
+	UID        types.UID
+}
+
+// Labels is a map of key:value.
+type Labels map[string]string
+
+// String returns all fields listed as a Neo4j property string.
+func (labels Labels) String() string {
+	selector := make([]string, 0, len(labels))
+	for key, value := range labels {
+		property := regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(strings.ToLower(key), "_")
+		selector = append(selector, fmt.Sprintf("node.Label_%s = \"%s\"", property, value))
+	}
+
+	sort.StringSlice(selector).Sort()
+	return strings.Join(selector, ", ")
+}
 
 // Relationship represents a relationship between nodes in the graph.
 type Relationship struct {
@@ -171,11 +194,17 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 	if g.Nodes[obj.GetClusterName()][obj.GetNamespace()] == nil {
 		g.Nodes[obj.GetClusterName()][obj.GetNamespace()] = make(map[types.UID]*Node)
 	}
+	if n, ok := g.Nodes[obj.GetClusterName()][obj.GetNamespace()][obj.GetUID()]; ok {
+		if len(n.Labels) != 0 {
+			obj.SetLabels(n.Labels)
+		}
+	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
 	node := &Node{
 		APIVersion: apiVersion,
 		Kind:       kind,
+		Labels:     obj.GetLabels(),
 		Name:       obj.GetName(),
 		Namespace:  obj.GetNamespace(),
 		UID:        obj.GetUID(),
