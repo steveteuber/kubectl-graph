@@ -103,17 +103,18 @@ After installation, open the `Neo4j Desktop.app` and do the following steps:
 ![Neo4j Desktop](./assets/neo4j-desktop.png)
 </details>
 
-When you have opened the Neo4j Browser interface, then you can start to fetch all Pods in the
+When you have opened the Neo4j Browser interface, then you can start to fetch all resources in the
 `kube-system` namespace and pipe the output directly to the `cypher-shell` command.
 
 ```
 kubectl graph all -n kube-system -o cypher | cypher-shell -u neo4j -p secret
 ```
 
-Within the Neo4j Browser interface, enter the following in the command line to render all nodes as a visual graph:
+Finally, within the Neo4j Browser interface you can enter the following queries in the command line:
 
 ```
-MATCH (n) RETURN n
+MATCH (n) RETURN n         // Render all nodes as a visual graph
+MATCH (n) DETACH DELETE n  // Delete all nodes and relationships
 ```
 
 For more information about the Cypher query language, please take a look at the offical [documentation](https://neo4j.com/docs/cypher-manual/current/clauses/).
