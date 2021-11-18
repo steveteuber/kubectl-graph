@@ -19,8 +19,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
-	"regexp"
-	"sort"
 	"strings"
 	"text/template"
 
@@ -54,7 +52,7 @@ func init() {
 
 // Graph stores nodes and relationships between them.
 type Graph struct {
-	Nodes         map[string]map[string]map[types.UID]*Node
+	Nodes         map[types.UID]*Node
 	Relationships map[types.UID][]*Relationship
 
 	clientset *kubernetes.Clientset
@@ -66,49 +64,16 @@ type Graph struct {
 
 // Node represents a node in the graph.
 type Node struct {
-	APIVersion string
-	Kind       string
-	Labels     Labels
-	Name       string
-	Namespace  string
-	UID        types.UID
-}
-
-// Labels is a map of key:value.
-type Labels map[string]string
-
-// String returns all fields listed as a Neo4j property string.
-func (labels Labels) String() string {
-	selector := make([]string, 0, len(labels))
-	for key, value := range labels {
-		property := regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(strings.ToLower(key), "_")
-		selector = append(selector, fmt.Sprintf("node.Label_%s = \"%s\"", property, value))
-	}
-
-	sort.StringSlice(selector).Sort()
-	return strings.Join(selector, ", ")
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 }
 
 // Relationship represents a relationship between nodes in the graph.
 type Relationship struct {
-	From v1.ObjectReference
-	Type string
-	To   v1.ObjectReference
-	Attr Attributes
-}
-
-// Attributes is a map of key:value.
-type Attributes map[string]string
-
-// String returns all fields listed as a Graphviz attr_list string.
-func (attr Attributes) String() string {
-	selector := make([]string, 0, len(attr))
-	for key, value := range attr {
-		selector = append(selector, fmt.Sprintf("%s=\"%s\"", key, value))
-	}
-
-	sort.StringSlice(selector).Sort()
-	return strings.Join(selector, " ")
+	From  types.UID
+	Label string
+	To    types.UID
+	Attr  map[string]string
 }
 
 // ToUID converts all params to MD5 and returns this as types.UID.
@@ -133,7 +98,7 @@ func ToUID(params ...interface{}) types.UID {
 }
 
 // FromUnstructured converts an unstructured object into a concrete type.
-func FromUnstructured(unstr *unstructured.Unstructured, obj interface{}) error {
+func FromUnstructured(unstr *unstructured.Unstructured, obj runtime.Object) error {
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstr.UnstructuredContent(), obj)
 	if err != nil {
 		return fmt.Errorf("failed to convert %T to %T: %v", unstr, obj, err)
@@ -146,7 +111,7 @@ func FromUnstructured(unstr *unstructured.Unstructured, obj interface{}) error {
 func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured, processed func()) (*Graph, error) {
 	g := &Graph{
 		clientset:     clientset,
-		Nodes:         make(map[string]map[string]map[types.UID]*Node),
+		Nodes:         make(map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
 	}
 
@@ -162,6 +127,11 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 			errs = append(errs, err)
 		}
 		processed()
+	}
+
+	err := g.Finalize()
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	return g, errors.NewAggregate(errs)
@@ -185,35 +155,32 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 
 // Node adds a node and the owner references to the Graph.
 func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
-	if obj.GetClusterName() == "" {
-		obj.SetClusterName(g.clientset.RESTClient().Get().URL().Hostname())
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+	node := &Node{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiVersion,
+			Kind:       kind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			UID:         obj.GetUID(),
+			ClusterName: obj.GetClusterName(),
+			Namespace:   obj.GetNamespace(),
+			Name:        obj.GetName(),
+			Annotations: obj.GetAnnotations(),
+			Labels:      obj.GetLabels(),
+		},
 	}
-	if g.Nodes[obj.GetClusterName()] == nil {
-		g.Nodes[obj.GetClusterName()] = make(map[string]map[types.UID]*Node)
-	}
-	if g.Nodes[obj.GetClusterName()][obj.GetNamespace()] == nil {
-		g.Nodes[obj.GetClusterName()][obj.GetNamespace()] = make(map[types.UID]*Node)
-	}
-	if n, ok := g.Nodes[obj.GetClusterName()][obj.GetNamespace()][obj.GetUID()]; ok {
-		if len(n.Labels) != 0 {
-			obj.SetLabels(n.Labels)
+
+	if n, ok := g.Nodes[obj.GetUID()]; ok {
+		if len(n.GetAnnotations()) != 0 {
+			node.SetAnnotations(n.GetAnnotations())
+		}
+		if len(n.GetLabels()) != 0 {
+			node.SetLabels(n.GetLabels())
 		}
 	}
 
-	apiVersion, kind := gvk.ToAPIVersionAndKind()
-	node := &Node{
-		APIVersion: apiVersion,
-		Kind:       kind,
-		Labels:     obj.GetLabels(),
-		Name:       obj.GetName(),
-		Namespace:  obj.GetNamespace(),
-		UID:        obj.GetUID(),
-	}
-	if gvk.GroupKind().String() == "Namespace" {
-		return node
-	}
-
-	g.Nodes[obj.GetClusterName()][obj.GetNamespace()][obj.GetUID()] = node
+	g.Nodes[obj.GetUID()] = node
 
 	for _, ownerRef := range obj.GetOwnerReferences() {
 		owner := g.Node(
@@ -230,35 +197,90 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 	return node
 }
 
+// Finalize adds missing relationships to the Graph.
+func (g *Graph) Finalize() error {
+	for _, node := range g.Nodes {
+		if node.Kind == "Cluster" || node.Kind == "Namespace" {
+			continue
+		}
+
+		cluster, err := g.CoreV1().Cluster(node.GetClusterName())
+		if err != nil {
+			return err
+		}
+		node.SetClusterName(cluster.GetName())
+
+		if _, ok := g.Relationships[node.UID]; ok {
+			continue
+		}
+
+		if len(node.GetNamespace()) == 0 {
+			g.Relationship(cluster, node.Kind, node)
+			continue
+		}
+
+		metadata := metav1.ObjectMeta{ClusterName: node.GetClusterName(), Name: node.GetNamespace()}
+		namespace, err := g.CoreV1().Namespace(&v1.Namespace{ObjectMeta: metadata})
+		if err != nil {
+			return err
+		}
+		g.Relationship(namespace, node.Kind, node)
+	}
+
+	return nil
+}
+
+// NodeList returns a list of all nodes.
+func (g *Graph) NodeList() []*Node {
+	nodes := []*Node{}
+
+	for _, node := range g.Nodes {
+		nodes = append(nodes, node)
+	}
+
+	return nodes
+}
+
 // Relationship creates a new relationship between two nodes.
 func (g *Graph) Relationship(from *Node, label string, to *Node) *Relationship {
-	if rs, ok := g.Relationships[from.UID]; ok {
+	if rs, ok := g.Relationships[to.GetUID()]; ok {
 		for _, r := range rs {
-			if r.To.UID == to.UID {
+			if r.From == from.GetUID() {
 				return r
 			}
 		}
 	}
 
 	relationship := &Relationship{
-		From: v1.ObjectReference{UID: from.UID, Kind: from.Kind},
-		Type: label,
-		To:   v1.ObjectReference{UID: to.UID, Kind: to.Kind},
-		Attr: make(Attributes),
+		From:  from.GetUID(),
+		Label: label,
+		To:    to.GetUID(),
+		Attr:  make(map[string]string),
 	}
-	g.Relationships[from.UID] = append(g.Relationships[from.UID], relationship)
+	g.Relationships[to.GetUID()] = append(g.Relationships[to.GetUID()], relationship)
 
 	return relationship
 }
 
-// Attribute adds an attribute which is rendered in the Graphviz output format.
+// RelationshipList returns a list of all relationships.
+func (g *Graph) RelationshipList() []*Relationship {
+	relationships := []*Relationship{}
+
+	for _, relationship := range g.Relationships {
+		relationships = append(relationships, relationship...)
+	}
+
+	return relationships
+}
+
+// Attribute adds an attribute to a relationship.
 func (r *Relationship) Attribute(key string, value string) *Relationship {
 	r.Attr[key] = value
 	return r
 }
 
 // String returns the graph in requested format.
-func (g Graph) String(format string) string {
+func (g *Graph) String(format string) string {
 	b := &bytes.Buffer{}
 	g.Write(b, format)
 
@@ -266,7 +288,7 @@ func (g Graph) String(format string) string {
 }
 
 // Write formats according to the requested format and writes to w.
-func (g Graph) Write(w io.Writer, format string) error {
+func (g *Graph) Write(w io.Writer, format string) error {
 	err := templates.ExecuteTemplate(w, format, g)
 	if err != nil {
 		return err
