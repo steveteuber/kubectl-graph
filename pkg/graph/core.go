@@ -22,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // CoreV1Graph is used to graph all core resources.
@@ -80,11 +79,40 @@ func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error)
 	return err
 }
 
+// Cluster adds a v1.Cluster resource to the Graph.
+func (g *CoreV1Graph) Cluster(name string) (*Node, error) {
+	if len(name) == 0 {
+		name = g.graph.clientset.RESTClient().Get().URL().Hostname()
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "Cluster"),
+		&metav1.ObjectMeta{
+			UID:  ToUID("Cluster", name),
+			Name: name,
+		},
+	)
+
+	return n, nil
+}
+
 // Namespace adds a v1.Namespace resource to the Graph.
-func (g *CoreV1Graph) Namespace(namespace *v1.Namespace) (*Node, error) {
-	namespace.SetUID(types.UID(namespace.GetName()))
-	namespace.SetNamespace(namespace.GetName())
-	n := g.graph.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Namespace"), namespace)
+func (g *CoreV1Graph) Namespace(ns *v1.Namespace) (*Node, error) {
+	c, err := g.Cluster(ns.GetClusterName())
+	if err != nil {
+		return nil, err
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "Namespace"),
+		&metav1.ObjectMeta{
+			UID:         ToUID(c.GetName(), ns.GetName()),
+			ClusterName: c.GetName(),
+			Name:        ns.GetName(),
+		},
+	)
+
+	g.graph.Relationship(c, "Namespace", n)
 
 	return n, nil
 }
