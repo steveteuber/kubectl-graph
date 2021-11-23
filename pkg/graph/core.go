@@ -111,7 +111,6 @@ func (g *CoreV1Graph) Namespace(ns *v1.Namespace) (*Node, error) {
 			Name:        ns.GetName(),
 		},
 	)
-
 	g.graph.Relationship(c, "Namespace", n)
 
 	return n, nil
@@ -205,7 +204,6 @@ func (g *CoreV1Graph) Endpoints(obj *v1.Endpoints) (*Node, error) {
 				if err != nil {
 					return nil, err
 				}
-
 				g.graph.Relationship(n, t.Kind, t)
 			}
 		}

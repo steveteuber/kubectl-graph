@@ -1,36 +1,17 @@
-// create nodes
 :begin
-{{- range $cluster, $namespaces := .Nodes }}
-MERGE (node:Cluster {UID: "{{ $cluster }}"}) ON CREATE SET node.Name = "{{ $cluster }}";
-  {{- range $namespace, $node := $namespaces }}
-    {{- if $namespace }}
-MERGE (node:Namespace {UID: "{{ $namespace }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ $namespace }}";
-      {{- range . }}
-MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Namespace = "{{ .Namespace }}", node.Name = "{{ .Name }}"{{ if .Labels }}, {{ .Labels }}{{ end }};
-      {{- end }}
-    {{- else }}
-      {{- range . }}
-MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.ClusterName = "{{ $cluster }}", node.Name = "{{ .Name }}"{{ if .Labels }}, {{ .Labels }}{{ end }};
-      {{- end }}
-    {{- end }}
-  {{- end }}
+{{- range .NodeList }}
+MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.Name = "{{ .Name }}"
+{{- if .ClusterName }}, node.ClusterName = "{{ .ClusterName }}"{{ end -}}
+{{- if .Namespace }}, node.Namespace = "{{ .Namespace }}"{{ end -}}
+{{- range $key, $value := .Annotations }}, node.Annotation_{{ underscore $key }} = {{ json $value }}{{ end -}}
+{{- range $key, $value := .Labels }}, node.Label_{{ underscore $key }} = {{ json $value }}{{ end -}};
 {{- end }}
 :commit
 
-// wait for index completion
 call db.awaitIndexes();
 
-// create relationships
 :begin
-{{- range .Relationships }}{{ range . }}
-MATCH (from:{{ .From.Kind }}),(to:{{ .To.Kind }}) WHERE from.UID = "{{ .From.UID }}" AND to.UID = "{{ .To.UID }}" MERGE (from)-[:{{ .Type }}]->(to);
-{{- end }}{{ end }}
-{{- range $cluster, $namespaces := .Nodes }}
-MATCH (cl:Cluster) WHERE cl.UID = "{{ $cluster }}" MATCH (node) WHERE node.ClusterName = cl.Name AND node.Namespace IS NULL AND NOT(()-[]->(node)) MERGE (node)-[:Cluster]->(cl);
-  {{- range $namespace, $node := $namespaces }}
-    {{- if $namespace }}
-MATCH (ns:Namespace) WHERE ns.UID = "{{ $namespace }}" MATCH (node) WHERE node.Namespace = ns.Name AND NOT(()-[]->(node)) MERGE (node)-[:Namespace]->(ns);
-    {{- end }}
-  {{- end }}
+{{- range .RelationshipList }}
+MATCH (from:{{ (index $.Nodes .From).Kind }}), (to:{{ (index $.Nodes .To).Kind }}) WHERE from.UID = "{{ .From }}" AND to.UID = "{{ .To }}" MERGE (from)-[:{{ .Label }}]->(to);
 {{- end }}
 :commit

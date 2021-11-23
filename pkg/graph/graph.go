@@ -17,8 +17,10 @@ package graph
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -42,7 +44,19 @@ var (
 	//go:embed templates/graphviz.tmpl
 	graphvizTemplate string
 
-	templates = template.New("output")
+	templates = template.New("output").Funcs(template.FuncMap{
+		"json": func(i interface{}) string {
+			b, err := json.Marshal(i)
+			if err != nil {
+				return err.Error()
+			}
+			return string(b)
+		},
+		"underscore": func(s string) string {
+			re := regexp.MustCompile(`[^A-Za-z0-9]+`)
+			return re.ReplaceAllString(strings.ToLower(s), "_")
+		},
+	})
 )
 
 func init() {
