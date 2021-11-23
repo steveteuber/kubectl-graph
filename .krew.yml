@@ -8,8 +8,8 @@ spec:
   shortDescription: Visualize Kubernetes resources and relationships.
   description: |
     This plugin generates a visual representation of Kubernetes resources and
-    relationships. The graph is outputted in dot or cypher format, which can
-    be used by Graphviz or Neo4j.
+    relationships. The graph is outputted in AQL, CQL or DOT format which can
+    be used by ArangoDB, Neo4j or Graphviz.
   caveats: |
     This plugin requires Graphviz or Neo4j to visualize the dependency graph.
     Please see the quickstart guide for more information:
