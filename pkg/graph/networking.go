@@ -66,10 +66,10 @@ func (g *NetworkingV1Graph) Relationship(from *Node, policyType v1.PolicyType, t
 	switch policyType {
 	case v1.PolicyTypeIngress:
 		r = g.graph.Relationship(to, string(policyType), from)
-		r.Attribute("color", "#34A853")
+		r.Attribute("color", "#34a853")
 	case v1.PolicyTypeEgress:
 		r = g.graph.Relationship(from, string(policyType), to)
-		r.Attribute("color", "#EA4335")
+		r.Attribute("color", "#ea4335")
 	}
 
 	return r.Attribute("style", "dashed")

@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 
 	// Import to embed templates into go binary
 	_ "embed"
@@ -52,9 +53,20 @@ var (
 			}
 			return string(b)
 		},
+		"yaml": func(i interface{}) string {
+			b, err := yaml.Marshal(i)
+			if err != nil {
+				return err.Error()
+			}
+			return strings.Trim(string(b), "\n")
+		},
 		"underscore": func(s string) string {
 			re := regexp.MustCompile(`[^A-Za-z0-9]+`)
 			return re.ReplaceAllString(strings.ToLower(s), "_")
+		},
+		"color": func(s string) string {
+			hash := md5.Sum([]byte(s))
+			return fmt.Sprintf("#%x", hash[:3])
 		},
 	})
 )

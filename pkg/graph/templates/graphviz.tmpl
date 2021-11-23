@@ -1,40 +1,25 @@
 digraph {
-    graph [rankdir="LR" bgcolor="#F6F6F6"];
-    node [shape="record" color="#D3D3D3" style="filled" fillcolor="#FFFFFF"];
-    edge [color="#4284F3"];
-    compound=true;
-{{ range $cluster, $namespaces := .Nodes }}
-    // create cluster
-    subgraph "cluster_{{ $cluster }}" {
-        label="{{ $cluster }}";
-        bgcolor="#ECEFF1";
+  graph [layout="fdp" tooltip="kubectl-graph"];
+  node [shape="circle" style="filled" fontsize="12" width="1.2" fixedsize="true"];
+  edge [color="#9e9e9e" fontsize="10"];
 
-    {{- range $namespace, $node := $namespaces }}
-      {{ if $namespace }}
-        // create namespace
-        subgraph "cluster_namespace_{{ $namespace }}" {
-          label="{{ $namespace }}";
-          bgcolor="#E3F2FD";
-
-          "{{ $namespace }}" [label="Namespace\l | { {{ $namespace }}\l }" shape="point" style="invis"]
-          {{- range . }}
-          "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
-          {{- end }}
-        }
-      {{- else }}
-        // create nodes
-        {{- range . }}
-        "{{ .UID }}" [label="{{ .Kind }}\l | { {{ .Name }}\l }"];
-        {{- end }}
-      {{- end }}
-    {{- end }}
-    }
+{{- range .NodeList }}
+  "{{ .UID }}" [fillcolor="{{ color .Kind }}5e" label="
+  {{- if (gt (len .Name) 12) -}}
+    {{- printf "%.10s" .Name -}}...
+  {{- else -}}
+    {{- .Name -}}
+  {{- end -}}" tooltip={{ yaml . | json }}];
 {{- end }}
 
-    // create relationships
-{{- range .Relationships }}
-  {{- range . }}
-    "{{ .From.UID }}" -> "{{ .To.UID }}"{{ if .Attr }} [{{ .Attr }}]{{ end }};
-  {{- end }}
+{{- range .RelationshipList }}
+  "{{ .From }}" -> "{{ .To }}" [label="{{ .Label }}" labeltooltip="
+  {{- with (index $.Nodes .From) -}}
+    {{ .Kind }}[{{ .Name }}]
+  {{- end }} ->\n
+  {{- with (index $.Nodes .To) -}}
+    {{ .Kind }}[{{ .Name }}]
+  {{- end -}}
+  "{{ range $key, $value := .Attr }} {{ $key }}="{{ $value }}"{{ end }}];
 {{- end }}
 }
