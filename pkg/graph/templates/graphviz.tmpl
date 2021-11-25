@@ -1,5 +1,5 @@
 digraph {
-  graph [layout="fdp" tooltip="kubectl-graph"];
+  graph [layout="sfdp" tooltip="kubectl-graph" overlap="scale"];
   node [shape="circle" style="filled" fontsize="12" width="1.2" fixedsize="true"];
   edge [color="#9e9e9e" fontsize="10"];
 
@@ -19,7 +19,7 @@ digraph {
   {{- end }} ->\n
   {{- with (index $.Nodes .To) -}}
     {{ .Kind }}[{{ .Name }}]
-  {{- end -}}
-  "{{ range $key, $value := .Attr }} {{ $key }}="{{ $value }}"{{ end }}];
+  {{- end -}}"
+  {{- range $key, $value := .Attr }} {{ $key }}="{{ $value }}"{{ end }}];
 {{- end }}
 }
