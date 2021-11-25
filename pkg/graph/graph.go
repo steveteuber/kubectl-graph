@@ -39,6 +39,9 @@ import (
 )
 
 var (
+	//go:embed templates/arangodb.tmpl
+	arangodbTemplate string
+
 	//go:embed templates/cypher.tmpl
 	cypherTemplate string
 
@@ -72,6 +75,7 @@ var (
 )
 
 func init() {
+	template.Must(templates.New("arangodb").Parse(arangodbTemplate))
 	template.Must(templates.New("cypher").Parse(cypherTemplate))
 	template.Must(templates.New("graphviz").Parse(graphvizTemplate))
 }

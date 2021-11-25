@@ -1,0 +1,23 @@
+LET resources = (
+  FOR resource IN [
+  {{- range $idx, $resource := .NodeList }}{{ if $idx }},
+    {{ else }}
+    {{ end }}{_key: "{{ .UID }}", kind: "{{ .Kind }}", name: "{{ .Name }}"
+    {{- if .ClusterName }}, clusterName: "{{ .ClusterName }}"{{ end -}}
+    {{- if .Namespace }}, namespace: "{{ .Namespace }}"{{ end -}}
+    {{- if .Annotations }}, annotations: {{ json .Annotations }}{{ end -}}
+    {{- if .Labels }}, labels: {{ json .Labels }}{{ end -}}}
+  {{- end }}
+  ] INSERT resource INTO resources OPTIONS { overwriteMode: "replace" } LET result = NEW RETURN result
+)
+
+LET relationships = (
+  FOR relationship IN [
+  {{- range $idx, $relationship := .RelationshipList }}{{ if $idx }},
+    {{ else }}
+    {{ end }}{"_from": "resources/{{ .From }}", "label": "{{ .Label }}", "_to": "resources/{{ .To }}"}
+  {{- end }}
+  ] INSERT relationship INTO relationships OPTIONS { overwriteMode: "replace" } LET result = NEW RETURN result
+)
+
+RETURN { resources: LENGTH(resources), relationships: LENGTH(relationships) }
