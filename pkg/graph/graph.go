@@ -17,6 +17,7 @@ package graph
 import (
 	"bytes"
 	"crypto/md5"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,21 +34,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
-
-	// Import to embed templates into go binary
-	_ "embed"
 )
 
 var (
-	//go:embed templates/arangodb.tmpl
-	arangodbTemplate string
+	//go:embed templates/*.tmpl
+	templateFiles embed.FS
+	templates     *template.Template
+)
 
-	//go:embed templates/cypher.tmpl
-	cypherTemplate string
-
-	//go:embed templates/graphviz.tmpl
-	graphvizTemplate string
-
+func init() {
 	templates = template.New("output").Funcs(template.FuncMap{
 		"json": func(i interface{}) string {
 			b, err := json.Marshal(i)
@@ -72,12 +67,8 @@ var (
 			return fmt.Sprintf("#%x", hash[:3])
 		},
 	})
-)
 
-func init() {
-	template.Must(templates.New("arangodb").Parse(arangodbTemplate))
-	template.Must(templates.New("cypher").Parse(cypherTemplate))
-	template.Must(templates.New("graphviz").Parse(graphvizTemplate))
+	template.Must(templates.ParseFS(templateFiles, "templates/*.tmpl"))
 }
 
 // Graph stores nodes and relationships between them.
@@ -319,10 +310,5 @@ func (g *Graph) String(format string) string {
 
 // Write formats according to the requested format and writes to w.
 func (g *Graph) Write(w io.Writer, format string) error {
-	err := templates.ExecuteTemplate(w, format, g)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return templates.ExecuteTemplate(w, format+".tmpl", g)
 }
