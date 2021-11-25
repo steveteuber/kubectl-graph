@@ -13,29 +13,35 @@ A kubectl plugin to visualize Kubernetes resources and relationships.
 
 This plugin requires [Graphviz](https://graphviz.org), [Neo4j](https://neo4j.com) *or* [ArangoDB](https://www.arangodb.com) to visualize the dependency graph.
 
-### Graphviz
+<details>
+<summary><strong>Graphviz</strong></summary><br>
 
 The *default* output format requires `dot` to convert the output into a useful format.
 
 ```
 brew install graphviz
 ```
+</details>
 
-### Neo4j
+<details>
+<summary><strong>Neo4j</strong></summary><br>
 
 The *CQL* output format requires `cypher-shell` to connect to a Neo4j database.
 
 ```
 brew install cypher-shell
 ```
+</details>
 
-### ArangoDB
+<details>
+<summary><strong>ArangoDB</strong></summary><br>
 
-The *AQL* output format requires `curl` to send API requests to an ArangoDB server.
+The *AQL* output format requires `curl` and `jq` to send API requests to an ArangoDB server.
 
 ```
-brew install curl
+brew install curl jq
 ```
+</details>
 
 ## Installation
 
@@ -45,18 +51,18 @@ This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io). To in
 kubectl krew install graph
 ```
 
-## Quickstart
-
-This quickstart guide uses macOS. It's possible that the commands can differ on other operating systems.
-
-### Usage
+## Usage
 
 In general, this plugin is working like `kubectl get` but it tries to resolve relationships between the Kubernetes
 resources before it prints a graph in `AQL`, `CQL` *or* `DOT` format. By default, the plugin will use `DOT` as output format.
 
 ```
-kubectl graph [(-o|--output=)cql|cypher|dot|graphviz] (TYPE[.VERSION][.GROUP] ...) [flags]
+kubectl graph [(-o|--output=)aql|arangodb|cql|cypher|dot|graphviz] (TYPE[.VERSION][.GROUP] ...) [flags]
 ```
+
+## Quickstart
+
+This quickstart guide uses macOS. It's possible that the commands can differ on other operating systems.
 
 ### Graphviz
 
