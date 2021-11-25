@@ -1,7 +1,7 @@
 digraph {
   graph [layout="sfdp" tooltip="kubectl-graph" overlap="scale"];
-  node [shape="circle" style="filled" fontsize="12" width="1.2" fixedsize="true"];
-  edge [color="#9e9e9e" fontsize="10"];
+  node [shape="circle" style="filled" fontsize="8" width="0.8" fixedsize="true"];
+  edge [color="#9e9e9e" fontsize="6"];
 
 {{- range .NodeList }}
   "{{ .UID }}" [fillcolor="{{ color .Kind }}5e" label="
