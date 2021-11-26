@@ -121,7 +121,7 @@ After installation, open the `Neo4j Desktop.app` and do the following steps:
 3. Click Start and enter the password.
 4. When the database is up and running then you can click Open to open the Neo4j Browser interface.
 
-![Neo4j Desktop](./assets/neo4j-desktop.png)
+![Neo4j Desktop](/assets/neo4j-desktop.png)
 </details>
 
 When you have opened the Neo4j Browser interface, then you can start to fetch all resources in the
@@ -141,6 +141,9 @@ MATCH (n) DETACH DELETE n  // Delete all nodes and relationships
 For more information about the Cypher query language, please take a look at the offical [documentation](https://neo4j.com/docs/cypher-manual/current/clauses/).
 
 ### ArangoDB
+
+![ArangoDB Logo](/assets/arangodb-logo-light.png#gh-dark-mode-only)
+![ArangoDB Logo](/assets/arangodb-logo-dark.png#gh-light-mode-only)
 
 Before you can import all your Kubernetes resources, you will need to create an ArangoDB database.
 This can be done in multiple ways and is based on your preference.
@@ -192,7 +195,7 @@ For more information about the HTTP API, please take a look at the offical [docu
 
 Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by Prometheus.
 
-![Grafana Loki](assets/grafana-loki.png)
+![Grafana Loki](/assets/grafana-loki.png)
 
 ```
 kubectl graph all -n loki -o cypher | cypher-shell -u neo4j -p secret
