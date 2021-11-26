@@ -87,6 +87,9 @@ If you're not happy with SVG as output format, please take a look at the offical
 
 ### Neo4j
 
+![Neo4j Logo](/assets/neo4j-logo-light.png#gh-dark-mode-only)
+![Neo4j Logo](/assets/neo4j-logo-dark.png#gh-light-mode-only)
+
 Before you can import all your Kubernetes resources, you will need to create a Neo4j database.
 This can be done in multiple ways and is based on your preference.
 
