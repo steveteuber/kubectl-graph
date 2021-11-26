@@ -68,7 +68,7 @@ This quickstart guide uses macOS. It's possible that the commands can differ on 
 
 ### Graphviz
 
-![Graphviz Logo](/assets/graphviz-logo.png)
+![Graphviz Logo](assets/graphviz-logo.png)
 
 When you have installed the `dot` command line tool, then you can start to fetch all running Pods in the
 `kube-system` namespace and pipe the output directly to the `dot` command.
@@ -87,8 +87,8 @@ If you're not happy with SVG as output format, please take a look at the offical
 
 ### Neo4j
 
-![Neo4j Logo](/assets/neo4j-logo-light.png#gh-dark-mode-only)
-![Neo4j Logo](/assets/neo4j-logo-dark.png#gh-light-mode-only)
+![Neo4j Logo](assets/neo4j-logo-light.png#gh-dark-mode-only)
+![Neo4j Logo](assets/neo4j-logo-dark.png#gh-light-mode-only)
 
 Before you can import all your Kubernetes resources, you will need to create a Neo4j database.
 This can be done in multiple ways and is based on your preference.
@@ -121,7 +121,7 @@ After installation, open the `Neo4j Desktop.app` and do the following steps:
 3. Click Start and enter the password.
 4. When the database is up and running then you can click Open to open the Neo4j Browser interface.
 
-![Neo4j Desktop](/assets/neo4j-desktop.png)
+![Neo4j Desktop](assets/neo4j-desktop.png)
 </details>
 
 When you have opened the Neo4j Browser interface, then you can start to fetch all resources in the
@@ -142,8 +142,8 @@ For more information about the Cypher query language, please take a look at the 
 
 ### ArangoDB
 
-![ArangoDB Logo](/assets/arangodb-logo-light.png#gh-dark-mode-only)
-![ArangoDB Logo](/assets/arangodb-logo-dark.png#gh-light-mode-only)
+![ArangoDB Logo](assets/arangodb-logo-light.png#gh-dark-mode-only)
+![ArangoDB Logo](assets/arangodb-logo-dark.png#gh-light-mode-only)
 
 Before you can import all your Kubernetes resources, you will need to create an ArangoDB database.
 This can be done in multiple ways and is based on your preference.
@@ -188,14 +188,13 @@ kubectl graph all -n kube-system -o aql \
 
 For more information about the HTTP API, please take a look at the offical [documentation](https://www.arangodb.com/docs/stable/http/).
 
-
 ## Examples
 
 ### Grafana Loki
 
 Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by Prometheus.
 
-![Grafana Loki](/assets/grafana-loki.png)
+![Grafana Loki](assets/grafana-loki.png)
 
 ```
 kubectl graph all -n loki -o cypher | cypher-shell -u neo4j -p secret
@@ -212,4 +211,4 @@ go run ./cmd/kubectl-graph/main.go all -n <namespace> | dot -T png -o all.png
 
 ## License
 
-This project is licensed under the Apache License 2.0, see [LICENSE](./LICENSE) for more information.
+This project is licensed under the Apache License 2.0, see [LICENSE](LICENSE) for more information.
