@@ -68,6 +68,8 @@ This quickstart guide uses macOS. It's possible that the commands can differ on 
 
 ### Graphviz
 
+![Graphviz Logo](/assets/graphviz-logo.png)
+
 When you have installed the `dot` command line tool, then you can start to fetch all running Pods in the
 `kube-system` namespace and pipe the output directly to the `dot` command.
 
