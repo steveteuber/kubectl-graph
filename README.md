@@ -43,6 +43,8 @@ brew install curl jq
 ```
 </details>
 
+<sup>Do you miss something? Please open an issue or create a pull request.</sup>
+
 ## Installation
 
 This `kubectl` plugin is distributed via [krew](https://krew.sigs.k8s.io). To install it, run the following command:
@@ -177,6 +179,7 @@ kubectl graph all -n kube-system -o aql \
 ```
 
 For more information about the HTTP API, please take a look at the offical [documentation](https://www.arangodb.com/docs/stable/http/).
+
 
 ## Examples
 
