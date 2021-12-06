@@ -40,17 +40,17 @@ func (g *Graph) RouteV1() *RouteV1Graph {
 }
 
 // Unstructured adds an unstructured node to the Graph.
-func (g *RouteV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
+func (g *RouteV1Graph) Unstructured(unstr *unstructured.Unstructured) (*Node, error) {
 	switch unstr.GetKind() {
 	case "Route":
 		obj := &v1.Route{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Route(obj)
+		return g.Route(obj)
+	default:
+		return g.graph.Node(unstr.GroupVersionKind(), unstr), nil
 	}
-
-	return err
 }
 
 // Route adds a v1.Route resource to the Graph.

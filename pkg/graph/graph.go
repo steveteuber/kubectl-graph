@@ -143,7 +143,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 	errs := []error{}
 
 	for _, obj := range objs {
-		err := g.Unstructured(obj)
+		_, err := g.Unstructured(obj)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -159,9 +159,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 }
 
 // Unstructured adds an unstructured node to the Graph.
-func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
-	g.Node(unstr.GroupVersionKind(), unstr)
-
+func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (*Node, error) {
 	switch unstr.GetAPIVersion() {
 	case "v1":
 		return g.CoreV1().Unstructured(unstr)
@@ -169,9 +167,9 @@ func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
 		return g.NetworkingV1().Unstructured(unstr)
 	case "route.openshift.io/v1":
 		return g.RouteV1().Unstructured(unstr)
+	default:
+		return g.Node(unstr.GroupVersionKind(), unstr), nil
 	}
-
-	return err
 }
 
 // Node adds a node and the owner references to the Graph.

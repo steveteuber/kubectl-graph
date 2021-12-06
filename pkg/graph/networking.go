@@ -42,23 +42,23 @@ func (g *Graph) NetworkingV1() *NetworkingV1Graph {
 }
 
 // Unstructured adds an unstructured node to the Graph.
-func (g *NetworkingV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
+func (g *NetworkingV1Graph) Unstructured(unstr *unstructured.Unstructured) (*Node, error) {
 	switch unstr.GetKind() {
 	case "Ingress":
 		obj := &v1.Ingress{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Ingress(obj)
+		return g.Ingress(obj)
 	case "NetworkPolicy":
 		obj := &v1.NetworkPolicy{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.NetworkPolicy(obj)
+		return g.NetworkPolicy(obj)
+	default:
+		return g.graph.Node(unstr.GroupVersionKind(), unstr), nil
 	}
-
-	return err
 }
 
 // Relationship creates a new relationship between two nodes based on v1.PolicyType.

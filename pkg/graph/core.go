@@ -42,41 +42,41 @@ func (g *Graph) CoreV1() *CoreV1Graph {
 }
 
 // Unstructured adds an unstructured node to the Graph.
-func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (err error) {
+func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (*Node, error) {
 	switch unstr.GetKind() {
 	case "Namespace":
 		obj := &v1.Namespace{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Namespace(obj)
+		return g.Namespace(obj)
 	case "Pod":
 		obj := &v1.Pod{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Pod(obj)
+		return g.Pod(obj)
 	case "Endpoints":
 		obj := &v1.Endpoints{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Endpoints(obj)
+		return g.Endpoints(obj)
 	case "Service":
 		obj := &v1.Service{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Service(obj)
+		return g.Service(obj)
 	case "Node":
 		obj := &v1.Node{}
-		if err = FromUnstructured(unstr, obj); err != nil {
-			return err
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
 		}
-		_, err = g.Node(obj)
+		return g.Node(obj)
+	default:
+		return g.graph.Node(unstr.GroupVersionKind(), unstr), nil
 	}
-
-	return err
 }
 
 // Cluster adds a v1.Cluster resource to the Graph.
