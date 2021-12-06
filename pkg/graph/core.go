@@ -120,6 +120,14 @@ func (g *CoreV1Graph) Namespace(ns *v1.Namespace) (*Node, error) {
 func (g *CoreV1Graph) Pod(pod *v1.Pod) (*Node, error) {
 	n := g.graph.Node(schema.FromAPIVersionAndKind(v1.GroupName, "Pod"), pod)
 
+	for _, initContainer := range pod.Spec.InitContainers {
+		c, err := g.Container(pod, initContainer)
+		if err != nil {
+			return nil, err
+		}
+		g.graph.Relationship(n, "InitContainer", c)
+	}
+
 	for _, container := range pod.Spec.Containers {
 		c, err := g.Container(pod, container)
 		if err != nil {
