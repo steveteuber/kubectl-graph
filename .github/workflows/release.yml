@@ -14,17 +14,15 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Read Go version
-      id: go-version
+    - name: Read go.mod
+      id: go-mod
       run: |
-        echo "::set-output name=content::$(cat .go-version)"
+        echo "::set-output name=version::$(go mod edit -json | jq -r .Go)"
 
     - name: Setup Go
       uses: actions/setup-go@v3
       with:
-        # TODO: Replace with go-version-from-file when it is supported
-        # https://github.com/actions/setup-go/pull/62
-        go-version: ${{ steps.go-version.outputs.content }}
+        go-version: ${{ steps.go-mod.outputs.version }}
 
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v2
