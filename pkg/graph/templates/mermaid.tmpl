@@ -1,0 +1,13 @@
+graph
+{{- range .NodeList }}
+  {{ .UID }}((
+  {{- if (gt (len .Name) 12) -}}
+    {{- printf "%.10s" .Name -}}...
+  {{- else -}}
+    {{- .Name -}}
+  {{- end -}})):::{{ .Kind }}
+{{- end }}
+
+{{- range .RelationshipList }}
+  {{ .From }} -- {{ .Label }} --> {{ .To }}
+{{- end }}
