@@ -41,6 +41,6 @@ jobs:
 
     - name: Update new version in krew-index
       if: success() && !contains(github.ref, '-')
-      uses: rajatjindal/krew-release-bot@v0.0.42
+      uses: rajatjindal/krew-release-bot@v0.0.43
       with:
         krew_template_file: .krew.yml
