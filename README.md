@@ -59,7 +59,7 @@ In general, this plugin is working like `kubectl get` but it tries to resolve re
 resources before it prints a graph in `AQL`, `CQL` *or* `DOT` format. By default, the plugin will use `DOT` as output format.
 
 ```
-kubectl graph [(-o|--output=)aql|arangodb|cql|cypher|dot|graphviz] (TYPE[.VERSION][.GROUP] ...) [flags]
+kubectl graph [(-o|--output=)aql|arangodb|cql|cypher|dot|graphviz|mermaid] (TYPE[.VERSION][.GROUP] ...) [flags]
 ```
 
 ## Quickstart
@@ -90,7 +90,7 @@ If you're not happy with SVG as output format, please take a look at the offical
 ![Neo4j Logo](assets/neo4j-logo-light.png#gh-dark-mode-only)
 ![Neo4j Logo](assets/neo4j-logo-dark.png#gh-light-mode-only)
 
-Before you can import all your Kubernetes resources, you will need to create a Neo4j database.
+Before you can import all your Kubernetes resources, you will need to create a Neo4j database.\
 This can be done in multiple ways and is based on your preference.
 
 <details>
@@ -145,7 +145,7 @@ For more information about the Cypher query language, please take a look at the 
 ![ArangoDB Logo](assets/arangodb-logo-light.png#gh-dark-mode-only)
 ![ArangoDB Logo](assets/arangodb-logo-dark.png#gh-light-mode-only)
 
-Before you can import all your Kubernetes resources, you will need to create an ArangoDB database.
+Before you can import all your Kubernetes resources, you will need to create an ArangoDB database.\
 This can be done in multiple ways and is based on your preference.
 
 <details>

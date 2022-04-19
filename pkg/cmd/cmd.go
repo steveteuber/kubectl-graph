@@ -72,7 +72,7 @@ func NewCmdGraph(parent string, flags *genericclioptions.ConfigFlags, streams ge
 	o := NewGraphOptions(parent, flags, streams)
 
 	cmd := &cobra.Command{
-		Use:                   fmt.Sprintf("%s graph [(-o|--output=)aql|arangodb|cql|cypher|dot|graphviz] (TYPE[.VERSION][.GROUP] ...) [flags]", parent),
+		Use:                   fmt.Sprintf("%s graph [(-o|--output=)aql|arangodb|cql|cypher|dot|graphviz|mermaid] (TYPE[.VERSION][.GROUP] ...) [flags]", parent),
 		DisableFlagsInUseLine: true,
 		Short:                 "Visualize one or many resources and relationships",
 		Long:                  graphLong + "\n\n" + cmdutil.SuggestAPIResources(parent),
@@ -89,7 +89,7 @@ func NewCmdGraph(parent string, flags *genericclioptions.ConfigFlags, streams ge
 	cmd.Flags().Int64Var(&o.ChunkSize, "chunk-size", o.ChunkSize, "Return large lists in chunks rather than all at once. Pass 0 to disable.")
 	cmd.Flags().StringVar(&o.FieldSelector, "field-selector", o.FieldSelector, "Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.")
 	cmd.Flags().StringVarP(&o.LabelSelector, "selector", "l", o.LabelSelector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", o.OutputFormat, "Output format. One of: aql|arangodb|cql|cypher|dot|graphviz.")
+	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", o.OutputFormat, "Output format. One of: aql|arangodb|cql|cypher|dot|graphviz|mermaid.")
 	cmdutil.AddFilenameOptionFlags(cmd, &o.FilenameOptions, "identifying the resource to get from a server.")
 	o.configFlags.AddFlags(cmd.Flags())
 
@@ -127,8 +127,8 @@ func (o *GraphOptions) Validate(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && cmdutil.IsFilenameSliceEmpty(o.Filenames, o.Kustomize) {
 		return fmt.Errorf("you must specify the type of resource to graph. %s", cmdutil.SuggestAPIResources(o.CmdParent))
 	}
-	if !(o.OutputFormat == "arangodb" || o.OutputFormat == "cypher" || o.OutputFormat == "graphviz") {
-		return fmt.Errorf("invalid output format: %q, allowed formats are: %s", o.OutputFormat, "aql|arangodb|cql|cypher|dot|graphviz")
+	if !(o.OutputFormat == "arangodb" || o.OutputFormat == "cypher" || o.OutputFormat == "graphviz" || o.OutputFormat == "mermaid") {
+		return fmt.Errorf("invalid output format: %q, allowed formats are: %s", o.OutputFormat, "aql|arangodb|cql|cypher|dot|graphviz|mermaid")
 	}
 
 	return nil
