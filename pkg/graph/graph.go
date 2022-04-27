@@ -118,6 +118,18 @@ func ToUID(params ...interface{}) types.UID {
 	return types.UID(strings.Join(slice, "-"))
 }
 
+// FilterByValue filters a key value map by value using a function.
+func FilterByValue(kv map[string]string, f func(string) bool) map[string]string {
+	filtered := make(map[string]string, 0)
+	for key, value := range kv {
+		if f(value) {
+			filtered[key] = value
+		}
+	}
+
+	return filtered
+}
+
 // FromUnstructured converts an unstructured object into a concrete type.
 func FromUnstructured(unstr *unstructured.Unstructured, obj runtime.Object) error {
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstr.UnstructuredContent(), obj)
@@ -185,7 +197,9 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 			ClusterName: obj.GetClusterName(),
 			Namespace:   obj.GetNamespace(),
 			Name:        obj.GetName(),
-			Annotations: obj.GetAnnotations(),
+			Annotations: FilterByValue(obj.GetAnnotations(), func(v string) bool {
+				return !strings.HasPrefix(v, "{") && !strings.HasPrefix(v, "[")
+			}),
 			Labels:      obj.GetLabels(),
 		},
 	}
