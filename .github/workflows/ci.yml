@@ -28,7 +28,7 @@ jobs:
         go-version: ${{ steps.go-mod.outputs.version }}
 
     - name: Build Snapshot
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v3
       with:
         version: latest
         args: build --snapshot --rm-dist
