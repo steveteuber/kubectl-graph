@@ -3,7 +3,6 @@ LET resources = (
   {{- range $idx, $resource := .NodeList }}{{ if $idx }},
     {{ else }}
     {{ end }}{_key: "{{ .UID }}", kind: "{{ .Kind }}", name: "{{ .Name }}"
-    {{- if .ClusterName }}, clusterName: "{{ .ClusterName }}"{{ end -}}
     {{- if .Namespace }}, namespace: "{{ .Namespace }}"{{ end -}}
     {{- if .Annotations }}, annotations: {{ json .Annotations }}{{ end -}}
     {{- if .Labels }}, labels: {{ json .Labels }}{{ end -}}}

@@ -1,7 +1,6 @@
 :begin
 {{- range .NodeList }}
 MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.Name = "{{ .Name }}"
-{{- if .ClusterName }}, node.ClusterName = "{{ .ClusterName }}"{{ end -}}
 {{- if .Namespace }}, node.Namespace = "{{ .Namespace }}"{{ end -}}
 {{- range $key, $value := .Annotations }}, node.Annotation_{{ underscore $key }} = {{ json $value }}{{ end -}}
 {{- range $key, $value := .Labels }}, node.Label_{{ underscore $key }} = {{ json $value }}{{ end -}};
