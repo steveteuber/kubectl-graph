@@ -194,7 +194,6 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			UID:         obj.GetUID(),
-			ClusterName: obj.GetClusterName(),
 			Namespace:   obj.GetNamespace(),
 			Name:        obj.GetName(),
 			Annotations: FilterByValue(obj.GetAnnotations(), func(v string) bool {
@@ -237,22 +236,21 @@ func (g *Graph) Finalize() error {
 			continue
 		}
 
-		cluster, err := g.CoreV1().Cluster(node.GetClusterName())
-		if err != nil {
-			return err
-		}
-		node.SetClusterName(cluster.GetName())
-
 		if _, ok := g.Relationships[node.UID]; ok {
 			continue
 		}
 
 		if len(node.GetNamespace()) == 0 {
+			cluster, err := g.CoreV1().Cluster()
+			if err != nil {
+				return err
+			}
+
 			g.Relationship(cluster, node.Kind, node)
 			continue
 		}
 
-		metadata := metav1.ObjectMeta{ClusterName: node.GetClusterName(), Name: node.GetNamespace()}
+		metadata := metav1.ObjectMeta{Name: node.GetNamespace()}
 		namespace, err := g.CoreV1().Namespace(&v1.Namespace{ObjectMeta: metadata})
 		if err != nil {
 			return err

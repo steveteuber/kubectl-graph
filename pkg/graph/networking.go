@@ -123,9 +123,8 @@ func (g *NetworkingV1Graph) Host(name string) (*Node, error) {
 	n := g.graph.Node(
 		schema.FromAPIVersionAndKind(v1.GroupName, "Host"),
 		&metav1.ObjectMeta{
-			ClusterName: "External",
-			UID:         ToUID(name),
-			Name:        name,
+			UID:  ToUID(name),
+			Name: name,
 		},
 	)
 
@@ -312,9 +311,8 @@ func (g *NetworkingV1Graph) IPBlock(cidr string) (*Node, error) {
 	n := g.graph.Node(
 		schema.FromAPIVersionAndKind(v1.GroupName, "IPBlock"),
 		&metav1.ObjectMeta{
-			ClusterName: "External",
-			UID:         ToUID(cidr),
-			Name:        cidr,
+			UID:  ToUID(cidr),
+			Name: cidr,
 		},
 	)
 
