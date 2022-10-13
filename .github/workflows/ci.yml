@@ -17,15 +17,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Read go.mod
-      id: go-mod
-      run: |
-        echo "::set-output name=version::$(go mod edit -json | jq -r .Go)"
-
     - name: Setup Go
       uses: actions/setup-go@v3
       with:
-        go-version: ${{ steps.go-mod.outputs.version }}
+        go-version-file: go.mod
 
     - name: Build Snapshot
       uses: goreleaser/goreleaser-action@v3
