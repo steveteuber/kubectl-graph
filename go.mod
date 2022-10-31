@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/schollz/progressbar/v3 v3.11.0
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.6.1
 	k8s.io/api v0.25.3
 	k8s.io/apimachinery v0.25.3
 	k8s.io/cli-runtime v0.25.3
