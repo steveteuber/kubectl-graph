@@ -1,11 +1,6 @@
 graph
 {{- range .NodeList }}
-  {{ .UID }}((
-  {{- if (gt (len .Name) 12) -}}
-    {{- printf "%.10s" .Name -}}...
-  {{- else -}}
-    {{- .Name -}}
-  {{- end -}})):::{{ .Kind }}
+  {{ .UID }}(({{ truncate .Name $.Options.Truncate }})):::{{ .Kind }}
 {{- end }}
 
 {{- range .RelationshipList }}
