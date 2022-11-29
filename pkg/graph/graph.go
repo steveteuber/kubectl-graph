@@ -67,6 +67,9 @@ func init() {
 			return fmt.Sprintf("#%x", hash[:3])
 		},
 		"truncate": func(s string, max int) string {
+			if max < 3 {
+				max = 3
+			}
 			if len(s) > max {
 				return fmt.Sprintf("%s...", s[:(max-3)])
 			}
