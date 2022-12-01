@@ -1,6 +1,6 @@
 graph
 {{- range .NodeList }}
-  {{ .UID }}(({{ truncate .Name $.Options.Truncate }})):::{{ .Kind }}
+  {{ .UID }}(({{ truncate .Name $.Options.NodeNameLimit }})):::{{ .Kind }}
 {{- end }}
 
 {{- range .RelationshipList }}

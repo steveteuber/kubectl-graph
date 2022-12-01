@@ -64,7 +64,7 @@ func NewGraphOptions(parent string, flags *genericclioptions.ConfigFlags, stream
 		CmdParent:   parent,
 		IOStreams:   streams,
 		ChunkSize:   500,
-		Truncate:    12,
+		Truncate:    graph.DefaultNodeNameLimit,
 	}
 }
 
@@ -204,7 +204,7 @@ func (o *GraphOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string)
 	}
 
 	if o.Truncate > 0 {
-		graph.Options.Truncate = o.Truncate
+		graph.Options.NodeNameLimit = o.Truncate
 	}
 
 	return graph.Write(o.Out, o.OutputFormat)

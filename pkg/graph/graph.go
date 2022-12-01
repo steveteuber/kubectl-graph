@@ -36,6 +36,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	// DefaultNodeNameLimit represents the default limit to truncate the node name to N characters.
+	DefaultNodeNameLimit int = 12
+)
+
 var (
 	//go:embed templates/*.tmpl
 	templateFiles embed.FS
@@ -109,7 +114,7 @@ type Relationship struct {
 
 // Options represents attributes to configure the graph.
 type Options struct {
-	Truncate int
+	NodeNameLimit int
 }
 
 // ToUID converts all params to MD5 and returns this as types.UID.
@@ -162,7 +167,7 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 		Nodes:         make(map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
 		Options: &Options{
-			Truncate: 12,
+			NodeNameLimit: DefaultNodeNameLimit,
 		},
 	}
 
