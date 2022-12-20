@@ -36,6 +36,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	// DefaultNodeNameLimit represents the default limit to truncate the node name to N characters.
+	DefaultNodeNameLimit int = 12
+)
+
 var (
 	//go:embed templates/*.tmpl
 	templateFiles embed.FS
@@ -66,6 +71,15 @@ func init() {
 			hash := md5.Sum([]byte(s))
 			return fmt.Sprintf("#%x", hash[:3])
 		},
+		"truncate": func(s string, max int) string {
+			if max < 3 {
+				max = 3
+			}
+			if len(s) > max {
+				return fmt.Sprintf("%s...", s[:(max-3)])
+			}
+			return s
+		},
 	})
 
 	template.Must(templates.ParseFS(templateFiles, "templates/*.tmpl"))
@@ -75,6 +89,7 @@ func init() {
 type Graph struct {
 	Nodes         map[types.UID]*Node
 	Relationships map[types.UID][]*Relationship
+	Options       *Options
 
 	clientset *kubernetes.Clientset
 
@@ -95,6 +110,11 @@ type Relationship struct {
 	Label string
 	To    types.UID
 	Attr  map[string]string
+}
+
+// Options represents attributes to configure the graph.
+type Options struct {
+	NodeNameLimit int
 }
 
 // ToUID converts all params to MD5 and returns this as types.UID.
@@ -146,6 +166,9 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 		clientset:     clientset,
 		Nodes:         make(map[types.UID]*Node),
 		Relationships: make(map[types.UID][]*Relationship),
+		Options: &Options{
+			NodeNameLimit: DefaultNodeNameLimit,
+		},
 	}
 
 	g.coreV1 = NewCoreV1Graph(g)
@@ -193,13 +216,13 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 			Kind:       kind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			UID:         obj.GetUID(),
-			Namespace:   obj.GetNamespace(),
-			Name:        obj.GetName(),
+			UID:       obj.GetUID(),
+			Namespace: obj.GetNamespace(),
+			Name:      obj.GetName(),
 			Annotations: FilterByValue(obj.GetAnnotations(), func(v string) bool {
 				return !strings.HasPrefix(v, "{") && !strings.HasPrefix(v, "[")
 			}),
-			Labels:      obj.GetLabels(),
+			Labels: obj.GetLabels(),
 		},
 	}
 

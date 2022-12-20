@@ -1,15 +1,10 @@
 digraph {
   graph [layout="sfdp" tooltip="kubectl-graph" overlap="scale"];
-  node [shape="circle" style="filled" fontsize="8" width="0.8" fixedsize="true"];
+  node [shape="circle" style="filled" fontsize="8"];
   edge [color="#9e9e9e" fontsize="6"];
 
 {{- range .NodeList }}
-  "{{ .UID }}" [fillcolor="{{ color .Kind }}5e" label="
-  {{- if (gt (len .Name) 12) -}}
-    {{- printf "%.10s" .Name -}}...
-  {{- else -}}
-    {{- .Name -}}
-  {{- end -}}" tooltip={{ yaml . | json }}];
+  "{{ .UID }}" [fillcolor="{{ color .Kind }}5e" label="{{ truncate .Name $.Options.NodeNameLimit }}" tooltip={{ yaml . | json }}];
 {{- end }}
 
 {{- range .RelationshipList }}
