@@ -23,7 +23,7 @@ jobs:
         go-version-file: go.mod
 
     - name: Build Snapshot
-      uses: goreleaser/goreleaser-action@v3
+      uses: goreleaser/goreleaser-action@v4
       with:
         version: latest
         args: build --snapshot --rm-dist
