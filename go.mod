@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/openshift/api v3.9.0+incompatible
-	github.com/schollz/progressbar/v3 v3.12.2
+	github.com/schollz/progressbar/v3 v3.13.0
 	github.com/spf13/cobra v1.6.1
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
@@ -60,8 +60,8 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	golang.org/x/net v0.3.1-0.20221206200815-1e63c2f08a10 // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
