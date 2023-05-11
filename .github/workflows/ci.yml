@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-11
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -26,4 +26,4 @@ jobs:
       uses: goreleaser/goreleaser-action@v4
       with:
         version: latest
-        args: build --snapshot --clean
+        args: build --id linux --single-target --snapshot --clean
