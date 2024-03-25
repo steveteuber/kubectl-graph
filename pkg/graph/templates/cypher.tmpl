@@ -1,6 +1,34 @@
+// set following props on the nodes so that we can identify each batch seperately. And timestamp so that we can when it was run.
+:params {ts: DATETIME(), bid: randomUUID()}
+
+// Create the fulltext index so that we can run quieries like,
+// CALL db.index.fulltext.queryNodes("k8s", "my_search_term") YIELD node, score RETURN node, score
+// CALL db.index.fulltext.queryNodes("k8s", "Name:my_search_name") YIELD node, score RETURN node, score
+// CALL db.index.fulltext.queryNodes("k8s", "Name:my_search_namespace") YIELD node, score RETURN node, score
+
+:begin
+CREATE FULLTEXT INDEX k8s IF NOT EXISTS FOR (n:k8s) ON EACH [
+  n.Name,
+  n.Namespace,
+  n.Label_app,
+  n.Label_app_kubernetes_io_instance,
+  n.Label_app_kubernetes_io_managed_by,
+  n.Label_app_kubernetes_io_name,
+  n.Label_appid
+]
+OPTIONS {
+  indexConfig: {
+    `fulltext.analyzer`: 'url_or_email',
+    `fulltext.eventually_consistent`: true
+  }
+};
+:commit
+
+call db.awaitIndexes();
+
 :begin
 {{- range .NodeList }}
-MERGE (node:{{ .Kind }} {UID: "{{ .UID }}"}) ON CREATE SET node.Name = "{{ .Name }}"
+MERGE (node:{{ .Kind }}:k8s {UID: "{{ .UID }}"}) ON CREATE SET node.Name = "{{ .Name }}", node.ts = $ts, node.batch = $bid
 {{- if .Namespace }}, node.Namespace = "{{ .Namespace }}"{{ end -}}
 {{- range $key, $value := .Annotations }}, node.Annotation_{{ underscore $key }} = {{ json $value }}{{ end -}}
 {{- range $key, $value := .Labels }}, node.Label_{{ underscore $key }} = {{ json $value }}{{ end -}};
