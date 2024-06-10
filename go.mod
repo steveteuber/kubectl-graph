@@ -1,11 +1,11 @@
 module github.com/steveteuber/kubectl-graph
 
 go 1.21
-toolchain go1.22.2
+toolchain go1.22.3
 
 require (
 	github.com/openshift/api v3.9.0+incompatible
-	github.com/schollz/progressbar/v3 v3.14.3
+	github.com/schollz/progressbar/v3 v3.14.4
 	github.com/spf13/cobra v1.8.0
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
