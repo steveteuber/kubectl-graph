@@ -25,5 +25,4 @@ jobs:
     - name: Build Snapshot
       uses: goreleaser/goreleaser-action@v6
       with:
-        version: latest
         args: build --id linux --single-target --snapshot --clean
