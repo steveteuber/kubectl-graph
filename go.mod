@@ -5,7 +5,7 @@ toolchain go1.22.5
 
 require (
 	github.com/openshift/api v3.9.0+incompatible
-	github.com/schollz/progressbar/v3 v3.16.0
+	github.com/schollz/progressbar/v3 v3.16.1
 	github.com/spf13/cobra v1.8.1
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
