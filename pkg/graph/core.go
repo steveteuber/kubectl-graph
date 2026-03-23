@@ -146,6 +146,14 @@ func (g *CoreV1Graph) Pod(pod *v1.Pod) (*Node, error) {
 		g.graph.Relationship(n, "Container", c)
 	}
 
+	if pod.Spec.ServiceAccountName != "" {
+		sa, err := g.ServiceAccount(pod.GetNamespace(), pod.Spec.ServiceAccountName)
+		if err != nil {
+			return nil, err
+		}
+		g.graph.Relationship(n, "ServiceAccount", sa)
+	}
+
 	for _, volume := range pod.Spec.Volumes {
 		if volume.ConfigMap != nil {
 			cm, err := g.ConfigMap(pod.GetNamespace(), volume.ConfigMap.Name)
@@ -397,6 +405,28 @@ func (g *CoreV1Graph) Secret(namespace string, name string) (*Node, error) {
 		schema.FromAPIVersionAndKind(v1.GroupName, "Secret"),
 		&metav1.ObjectMeta{
 			UID:       ToUID("Secret", namespace, name),
+			Namespace: namespace,
+			Name:      name,
+		},
+	)
+
+	return n, nil
+}
+
+// ServiceAccount adds a v1.ServiceAccount resource to the Graph or resolves an existing node for it.
+func (g *CoreV1Graph) ServiceAccount(namespace string, name string) (*Node, error) {
+	if name == "" {
+		return nil, fmt.Errorf("serviceaccount reference is missing a name")
+	}
+
+	if n := g.graph.FindNode(v1.SchemeGroupVersion.String(), "ServiceAccount", namespace, name); n != nil {
+		return n, nil
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "ServiceAccount"),
+		&metav1.ObjectMeta{
+			UID:       ToUID("ServiceAccount", namespace, name),
 			Namespace: namespace,
 			Name:      name,
 		},
