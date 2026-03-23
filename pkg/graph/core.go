@@ -525,6 +525,14 @@ func (g *CoreV1Graph) Node(obj *v1.Node) (*Node, error) {
 func (g *CoreV1Graph) PersistentVolume(obj *v1.PersistentVolume) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
+	if obj.Spec.StorageClassName != "" {
+		sc, err := g.StorageClass(obj.Spec.StorageClassName)
+		if err != nil {
+			return nil, err
+		}
+		g.graph.Relationship(n, "StorageClass", sc)
+	}
+
 	return n, nil
 }
 
@@ -553,6 +561,14 @@ func (g *CoreV1Graph) PersistentVolumeRef(name string) (*Node, error) {
 func (g *CoreV1Graph) PersistentVolumeClaim(obj *v1.PersistentVolumeClaim) (*Node, error) {
 	n := g.graph.Node(obj.GroupVersionKind(), obj)
 
+	if obj.Spec.StorageClassName != nil && *obj.Spec.StorageClassName != "" {
+		sc, err := g.StorageClass(*obj.Spec.StorageClassName)
+		if err != nil {
+			return nil, err
+		}
+		g.graph.Relationship(n, "StorageClass", sc)
+	}
+
 	if obj.Spec.VolumeName != "" {
 		pv, err := g.PersistentVolumeRef(obj.Spec.VolumeName)
 		if err != nil {
@@ -560,6 +576,27 @@ func (g *CoreV1Graph) PersistentVolumeClaim(obj *v1.PersistentVolumeClaim) (*Nod
 		}
 		g.graph.Relationship(n, "PersistentVolume", pv)
 	}
+
+	return n, nil
+}
+
+// StorageClass adds a storage.k8s.io/v1 StorageClass resource to the Graph or resolves an existing node for it.
+func (g *CoreV1Graph) StorageClass(name string) (*Node, error) {
+	if name == "" {
+		return nil, fmt.Errorf("storageclass reference is missing a name")
+	}
+
+	if n := g.graph.FindNode("storage.k8s.io/v1", "StorageClass", "", name); n != nil {
+		return n, nil
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind("storage.k8s.io/v1", "StorageClass"),
+		&metav1.ObjectMeta{
+			UID:  ToUID("StorageClass", name),
+			Name: name,
+		},
+	)
 
 	return n, nil
 }
