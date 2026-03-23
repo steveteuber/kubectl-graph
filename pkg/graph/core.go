@@ -154,6 +154,14 @@ func (g *CoreV1Graph) Pod(pod *v1.Pod) (*Node, error) {
 		g.graph.Relationship(n, "ServiceAccount", sa)
 	}
 
+	for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
+		secret, err := g.Secret(pod.GetNamespace(), imagePullSecret.Name)
+		if err != nil {
+			return nil, err
+		}
+		g.graph.Relationship(n, "ImagePullSecret", secret)
+	}
+
 	for _, volume := range pod.Spec.Volumes {
 		if volume.ConfigMap != nil {
 			cm, err := g.ConfigMap(pod.GetNamespace(), volume.ConfigMap.Name)
