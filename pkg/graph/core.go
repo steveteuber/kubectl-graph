@@ -63,6 +63,18 @@ func (g *CoreV1Graph) Unstructured(unstr *unstructured.Unstructured) (*Node, err
 			return nil, err
 		}
 		return g.Endpoints(obj)
+	case "PersistentVolume":
+		obj := &v1.PersistentVolume{}
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
+		}
+		return g.PersistentVolume(obj)
+	case "PersistentVolumeClaim":
+		obj := &v1.PersistentVolumeClaim{}
+		if err := FromUnstructured(unstr, obj); err != nil {
+			return nil, err
+		}
+		return g.PersistentVolumeClaim(obj)
 	case "Service":
 		obj := &v1.Service{}
 		if err := FromUnstructured(unstr, obj); err != nil {
@@ -149,6 +161,14 @@ func (g *CoreV1Graph) Pod(pod *v1.Pod) (*Node, error) {
 				return nil, err
 			}
 			g.graph.Relationship(n, "Secret", secret)
+		}
+
+		if volume.PersistentVolumeClaim != nil {
+			pvc, err := g.PersistentVolumeClaimRef(pod.GetNamespace(), volume.PersistentVolumeClaim.ClaimName)
+			if err != nil {
+				return nil, err
+			}
+			g.graph.Relationship(n, "PersistentVolumeClaim", pvc)
 		}
 
 		if volume.Projected != nil {
@@ -459,6 +479,71 @@ func (g *CoreV1Graph) Node(obj *v1.Node) (*Node, error) {
 		)
 		g.graph.Relationship(n, kind, i)
 	}
+
+	return n, nil
+}
+
+// PersistentVolume adds a v1.PersistentVolume resource to the Graph.
+func (g *CoreV1Graph) PersistentVolume(obj *v1.PersistentVolume) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	return n, nil
+}
+
+// PersistentVolumeRef adds a v1.PersistentVolume resource to the Graph or resolves an existing node for it.
+func (g *CoreV1Graph) PersistentVolumeRef(name string) (*Node, error) {
+	if name == "" {
+		return nil, fmt.Errorf("persistentvolume reference is missing a name")
+	}
+
+	if n := g.graph.FindNode(v1.SchemeGroupVersion.String(), "PersistentVolume", "", name); n != nil {
+		return n, nil
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "PersistentVolume"),
+		&metav1.ObjectMeta{
+			UID:  ToUID("PersistentVolume", name),
+			Name: name,
+		},
+	)
+
+	return n, nil
+}
+
+// PersistentVolumeClaim adds a v1.PersistentVolumeClaim resource to the Graph.
+func (g *CoreV1Graph) PersistentVolumeClaim(obj *v1.PersistentVolumeClaim) (*Node, error) {
+	n := g.graph.Node(obj.GroupVersionKind(), obj)
+
+	if obj.Spec.VolumeName != "" {
+		pv, err := g.PersistentVolumeRef(obj.Spec.VolumeName)
+		if err != nil {
+			return nil, err
+		}
+		g.graph.Relationship(n, "PersistentVolume", pv)
+	}
+
+	return n, nil
+}
+
+// PersistentVolumeClaimRef adds a v1.PersistentVolumeClaim resource to the Graph or resolves an existing node for it.
+func (g *CoreV1Graph) PersistentVolumeClaimRef(namespace string, name string) (*Node, error) {
+	if name == "" {
+		return nil, fmt.Errorf("persistentvolumeclaim reference is missing a name")
+	}
+
+	if n := g.graph.FindNode(v1.SchemeGroupVersion.String(), "PersistentVolumeClaim", namespace, name); n != nil {
+		return n, nil
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "PersistentVolumeClaim"),
+		&metav1.ObjectMeta{
+			UID:       ToUID("PersistentVolumeClaim", namespace, name),
+			Namespace: namespace,
+			Name:      name,
+		},
+	)
 
 	return n, nil
 }
