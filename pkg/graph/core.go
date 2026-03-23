@@ -16,6 +16,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -131,6 +132,86 @@ func (g *CoreV1Graph) Pod(pod *v1.Pod) (*Node, error) {
 			return nil, err
 		}
 		g.graph.Relationship(n, "Container", c)
+	}
+
+	for _, volume := range pod.Spec.Volumes {
+		if volume.ConfigMap != nil {
+			cm, err := g.ConfigMap(pod.GetNamespace(), volume.ConfigMap.Name)
+			if err != nil {
+				return nil, err
+			}
+			g.graph.Relationship(n, "ConfigMap", cm)
+		}
+
+		if volume.Secret != nil {
+			secret, err := g.Secret(pod.GetNamespace(), volume.Secret.SecretName)
+			if err != nil {
+				return nil, err
+			}
+			g.graph.Relationship(n, "Secret", secret)
+		}
+
+		if volume.Projected != nil {
+			for _, source := range volume.Projected.Sources {
+				if source.ConfigMap != nil {
+					cm, err := g.ConfigMap(pod.GetNamespace(), source.ConfigMap.Name)
+					if err != nil {
+						return nil, err
+					}
+					g.graph.Relationship(n, "ConfigMap", cm)
+				}
+
+				if source.Secret != nil {
+					secret, err := g.Secret(pod.GetNamespace(), source.Secret.Name)
+					if err != nil {
+						return nil, err
+					}
+					g.graph.Relationship(n, "Secret", secret)
+				}
+			}
+		}
+	}
+
+	for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
+		for _, envFrom := range container.EnvFrom {
+			if envFrom.ConfigMapRef != nil {
+				cm, err := g.ConfigMap(pod.GetNamespace(), envFrom.ConfigMapRef.Name)
+				if err != nil {
+					return nil, err
+				}
+				g.graph.Relationship(n, "ConfigMap", cm)
+			}
+
+			if envFrom.SecretRef != nil {
+				secret, err := g.Secret(pod.GetNamespace(), envFrom.SecretRef.Name)
+				if err != nil {
+					return nil, err
+				}
+				g.graph.Relationship(n, "Secret", secret)
+			}
+		}
+
+		for _, env := range container.Env {
+			if env.ValueFrom == nil {
+				continue
+			}
+
+			if env.ValueFrom.ConfigMapKeyRef != nil {
+				cm, err := g.ConfigMap(pod.GetNamespace(), env.ValueFrom.ConfigMapKeyRef.Name)
+				if err != nil {
+					return nil, err
+				}
+				g.graph.Relationship(n, "ConfigMap", cm)
+			}
+
+			if env.ValueFrom.SecretKeyRef != nil {
+				secret, err := g.Secret(pod.GetNamespace(), env.ValueFrom.SecretKeyRef.Name)
+				if err != nil {
+					return nil, err
+				}
+				g.graph.Relationship(n, "Secret", secret)
+			}
+		}
 	}
 
 	return n, nil
@@ -258,6 +339,50 @@ func (g *CoreV1Graph) Service(obj *v1.Service) (*Node, error) {
 	}
 
 	return nil, nil
+}
+
+// ConfigMap adds a v1.ConfigMap resource to the Graph or resolves an existing node for it.
+func (g *CoreV1Graph) ConfigMap(namespace string, name string) (*Node, error) {
+	if name == "" {
+		return nil, fmt.Errorf("configmap reference is missing a name")
+	}
+
+	if n := g.graph.FindNode(v1.SchemeGroupVersion.String(), "ConfigMap", namespace, name); n != nil {
+		return n, nil
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "ConfigMap"),
+		&metav1.ObjectMeta{
+			UID:       ToUID("ConfigMap", namespace, name),
+			Namespace: namespace,
+			Name:      name,
+		},
+	)
+
+	return n, nil
+}
+
+// Secret adds a v1.Secret resource to the Graph or resolves an existing node for it.
+func (g *CoreV1Graph) Secret(namespace string, name string) (*Node, error) {
+	if name == "" {
+		return nil, fmt.Errorf("secret reference is missing a name")
+	}
+
+	if n := g.graph.FindNode(v1.SchemeGroupVersion.String(), "Secret", namespace, name); n != nil {
+		return n, nil
+	}
+
+	n := g.graph.Node(
+		schema.FromAPIVersionAndKind(v1.GroupName, "Secret"),
+		&metav1.ObjectMeta{
+			UID:       ToUID("Secret", namespace, name),
+			Namespace: namespace,
+			Name:      name,
+		},
+	)
+
+	return n, nil
 }
 
 // ServiceTypeClusterIP adds a v1.Service of type ClusterIP to the Graph.
