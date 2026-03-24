@@ -178,6 +178,10 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 	errs := []error{}
 
 	for _, obj := range objs {
+		g.Node(obj.GroupVersionKind(), obj)
+	}
+
+	for _, obj := range objs {
 		_, err := g.Unstructured(obj)
 		if err != nil {
 			errs = append(errs, err)
@@ -250,6 +254,17 @@ func (g *Graph) Node(gvk schema.GroupVersionKind, obj metav1.Object) *Node {
 	}
 
 	return node
+}
+
+// FindNode returns a node by identity when it already exists in the graph.
+func (g *Graph) FindNode(apiVersion string, kind string, namespace string, name string) *Node {
+	for _, node := range g.Nodes {
+		if node.APIVersion == apiVersion && node.Kind == kind && node.Namespace == namespace && node.Name == name {
+			return node
+		}
+	}
+
+	return nil
 }
 
 // Finalize adds missing relationships to the Graph.
