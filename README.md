@@ -1,7 +1,6 @@
 # kubectl-graph
 
 [![License](https://img.shields.io/github/license/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/main/LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/steveteuber/kubectl-graph)](https://goreportcard.com/report/github.com/steveteuber/kubectl-graph)
 [![Workflow Status](https://img.shields.io/github/actions/workflow/status/steveteuber/kubectl-graph/ci.yml?branch=main)](https://github.com/steveteuber/kubectl-graph/actions/workflows/ci.yml?query=branch:main)
 [![GitHub Issues](https://img.shields.io/github/issues/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/issues)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/steveteuber/kubectl-graph)](https://github.com/steveteuber/kubectl-graph/blob/main/go.mod#L3)
