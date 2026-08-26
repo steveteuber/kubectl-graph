@@ -61,6 +61,12 @@ resources before it prints a graph in `AQL`, `CQL` *or* `DOT` format. By default
 kubectl graph [(-o|--output=)aql|arangodb|cql|cypher|dot|graphviz|mermaid] (TYPE[.VERSION][.GROUP] ...) [flags]
 ```
 
+Workload configuration relationships are resolved only between resources included in the graph. Include ConfigMaps and Secrets when graphing those references:
+
+```
+kubectl graph deployments,statefulsets,daemonsets,jobs,cronjobs,configmaps,secrets --all-namespaces
+```
+
 ## Quickstart
 
 This quickstart guide uses macOS. It's possible that the commands can differ on other operating systems.
