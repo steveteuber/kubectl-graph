@@ -199,6 +199,33 @@ func NewGraph(clientset *kubernetes.Clientset, objs []*unstructured.Unstructured
 
 // Unstructured adds an unstructured node to the Graph.
 func (g *Graph) Unstructured(unstr *unstructured.Unstructured) (*Node, error) {
+	var templatePath []string
+	switch {
+	case unstr.GroupVersionKind().Group == "apps" &&
+		(unstr.GetKind() == "Deployment" || unstr.GetKind() == "StatefulSet" || unstr.GetKind() == "DaemonSet"):
+		templatePath = []string{"spec", "template", "spec"}
+	case unstr.GroupVersionKind().Group == "batch" && unstr.GetKind() == "Job":
+		templatePath = []string{"spec", "template", "spec"}
+	case unstr.GroupVersionKind().Group == "batch" && unstr.GetKind() == "CronJob":
+		templatePath = []string{"spec", "jobTemplate", "spec", "template", "spec"}
+	}
+
+	if templatePath != nil {
+		n := g.Node(unstr.GroupVersionKind(), unstr)
+		podSpecMap, _, err := unstructured.NestedMap(unstr.Object, templatePath...)
+		if err != nil {
+			return nil, err
+		}
+
+		podSpec := &v1.PodSpec{}
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(podSpecMap, podSpec); err != nil {
+			return nil, fmt.Errorf("failed to convert %s pod template: %v", unstr.GetKind(), err)
+		}
+		g.CoreV1().workloadConfigReferences(n, unstr.GetNamespace(), podSpec)
+
+		return n, nil
+	}
+
 	switch unstr.GetAPIVersion() {
 	case "v1":
 		return g.CoreV1().Unstructured(unstr)

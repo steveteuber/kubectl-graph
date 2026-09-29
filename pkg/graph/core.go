@@ -253,6 +253,63 @@ func (g *CoreV1Graph) Pod(pod *v1.Pod) (*Node, error) {
 	return n, nil
 }
 
+// workloadConfigReferences adds relationships to configuration nodes already in the graph.
+func (g *CoreV1Graph) workloadConfigReferences(from *Node, namespace string, podSpec *v1.PodSpec) {
+	add := func(kind, name string) {
+		if target := g.graph.FindNode(v1.SchemeGroupVersion.String(), kind, namespace, name); target != nil {
+			g.graph.Relationship(from, kind, target)
+		}
+	}
+
+	for _, volume := range podSpec.Volumes {
+		if volume.ConfigMap != nil {
+			add("ConfigMap", volume.ConfigMap.Name)
+		}
+
+		if volume.Secret != nil {
+			add("Secret", volume.Secret.SecretName)
+		}
+
+		if volume.Projected != nil {
+			for _, source := range volume.Projected.Sources {
+				if source.ConfigMap != nil {
+					add("ConfigMap", source.ConfigMap.Name)
+				}
+
+				if source.Secret != nil {
+					add("Secret", source.Secret.Name)
+				}
+			}
+		}
+	}
+
+	for _, container := range append(podSpec.InitContainers, podSpec.Containers...) {
+		for _, envFrom := range container.EnvFrom {
+			if envFrom.ConfigMapRef != nil {
+				add("ConfigMap", envFrom.ConfigMapRef.Name)
+			}
+
+			if envFrom.SecretRef != nil {
+				add("Secret", envFrom.SecretRef.Name)
+			}
+		}
+
+		for _, env := range container.Env {
+			if env.ValueFrom == nil {
+				continue
+			}
+
+			if env.ValueFrom.ConfigMapKeyRef != nil {
+				add("ConfigMap", env.ValueFrom.ConfigMapKeyRef.Name)
+			}
+
+			if env.ValueFrom.SecretKeyRef != nil {
+				add("Secret", env.ValueFrom.SecretKeyRef.Name)
+			}
+		}
+	}
+}
+
 // Container adds a v1.Container resource to the Graph.
 func (g *CoreV1Graph) Container(pod *v1.Pod, container v1.Container) (*Node, error) {
 	n := g.graph.Node(
